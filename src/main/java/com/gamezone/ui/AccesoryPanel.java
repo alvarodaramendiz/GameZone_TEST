@@ -8,7 +8,6 @@ import com.gamezone.model.Shift;
 import com.gamezone.service.CustomerService;
 import com.gamezone.service.SellerService;
 import com.gamezone.service.ProductService;
-import com.gamezone.service.AccesoryService;
 import java.awt.*;
 import java.util.ArrayList;
 import javax.swing.*;
@@ -216,4 +215,4 @@ public class AccesoryPanel extends JPanel {
     private void refreshAccesoriesByTypeTable() {
         // Desarrollar cuando se complete ReturnService y RreturnPersistence
     }
-}
+}

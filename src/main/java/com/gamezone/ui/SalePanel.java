@@ -7,7 +7,6 @@ import com.gamezone.service.CustomerService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
 import com.gamezone.service.SellerService;
-import com.gamezone.service.AccesoryService;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -169,4 +168,4 @@ public class SalePanel extends JPanel {
             });
         }
     }
-}
+}
