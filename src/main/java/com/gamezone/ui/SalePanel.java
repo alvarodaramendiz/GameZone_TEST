@@ -3,6 +3,7 @@ package com.gamezone.ui;
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
 import com.gamezone.persistence.SalePersistence;
+import com.gamezone.persistence.WarrantyRepository;
 import com.gamezone.service.CustomerService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
@@ -27,7 +28,8 @@ public class SalePanel extends JPanel {
     private CustomerService customerService = new CustomerService();
     private SalePersistence salePersistence =
             new SalePersistence(productService, sellerService, customerService);
-    private final WarrantyService warrantyService = new WarrantyService();
+    private final WarrantyService warrantyService =
+            new WarrantyService(new WarrantyRepository(salePersistence, productService));
     private SaleService saleService =
             new SaleService(salePersistence, productService, sellerService, customerService, warrantyService);
 
