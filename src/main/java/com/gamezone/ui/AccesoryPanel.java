@@ -215,4 +215,4 @@ public class AccesoryPanel extends JPanel {
     private void refreshAccesoriesByTypeTable() {
         // Desarrollar cuando se complete ReturnService y RreturnPersistence
     }
-}
+}

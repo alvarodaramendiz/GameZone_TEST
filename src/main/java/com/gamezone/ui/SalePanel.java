@@ -168,4 +168,4 @@ public class SalePanel extends JPanel {
             });
         }
     }
-}
+}
