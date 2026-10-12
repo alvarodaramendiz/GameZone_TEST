@@ -66,13 +66,13 @@ public class SellerPersistence {
     public ArrayList<Seller> listSellers(){
         ArrayList<Seller> sellers = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(
-                new FileReader(PlainArchives.CUSTOMERS))) {
+                new FileReader(PlainArchives.SELLERS))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 String[] infoSeller = line.split("\\|");
                 long contactNumber, iD, employeeCode;
-                contactNumber = Long.parseLong(infoSeller[3]);
+                contactNumber = Long.parseLong(infoSeller[4]);
                 iD = Long.parseLong(infoSeller[0]);
                 employeeCode = Long.parseLong(infoSeller[1]);
                 Shift shift = Shift.valueOf(infoSeller[3]);

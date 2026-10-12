@@ -16,6 +16,9 @@ public class ProductService {
 
     private ProductPersistence productDAO;
 
+    /**
+     * Creates a new ProductService with its own product persistence.
+     */
     public ProductService() {
         this.productDAO = new ProductPersistence();
     }
@@ -72,6 +75,28 @@ public class ProductService {
     public boolean hasEnoughStock(String productId, int quantity) {
         Product product = productDAO.searchProduct(productId);
         return product != null && product.getStock() >= quantity;
+    }
+
+    /**
+     * Updates the stock of a product by the given quantity and saves the
+     * change. A positive quantity adds units and a negative one removes them.
+     *
+     * @param productId the ID of the product to update
+     * @param quantity the number of units to add (positive) or remove (negative)
+     * @throws IllegalArgumentException if the product does not exist or the
+     *         resulting stock would be negative
+     */
+    public void updateStock(String productId, int quantity) {
+        Product product = productDAO.searchProduct(productId);
+        if (product == null) {
+            throw new IllegalArgumentException("Producto no encontrado: " + productId);
+        }
+        int newStock = product.getStock() + quantity;
+        if (newStock < 0) {
+            throw new IllegalArgumentException("Stock insuficiente para el producto: " + product.getTitle());
+        }
+        product.setStock(newStock);
+        productDAO.updateProduct(product);
     }
 
     /**

@@ -17,10 +17,10 @@ import java.util.List;
  * in separate text files.
  *
  * File format for videogames.txt:
- * productId|title|price|stock|platform|genre|ageRating
+ * VIDEOGAME|productId|title|price|stock|platform|genre|ageRating
  *
  * File format for consoles.txt:
- * productId|title|price|stock|brand|model|generation
+ * CONSOLE|productId|title|price|stock|brand|model|generation
  *
  * @author jahdiel
  */
@@ -28,7 +28,7 @@ public class ProductPersistence {
 
     /**
      * Saves a product to its corresponding file (videogames.txt or consoles.txt),
-     * appending it as a new line.
+     * appending it as a new line
      *
      * @param product the product to save
      */
@@ -80,6 +80,32 @@ public class ProductPersistence {
     }
 
     /**
+     * Updates a stored product, matching it by ID, and next rewrites the
+     * product files so the change is persisted.
+     *
+     * @param product the product with the updated information
+     */
+    public void updateProduct(Product product) {
+        List<Product> products = listProducts();
+        for (int i = 0; i < products.size(); i++) {
+            if (products.get(i).getProductId().equals(product.getProductId())) {
+                products.set(i, product);
+                break;
+            }
+        }
+        try (BufferedWriter vg = new BufferedWriter(new FileWriter(PlainArchives.VIDEOGAMES));
+             BufferedWriter co = new BufferedWriter(new FileWriter(PlainArchives.CONSOLES))) {
+            for (Product p : products) {
+                BufferedWriter bw = (p instanceof VideoGame) ? vg : co;
+                bw.write(p.toText());
+                bw.newLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error: Failed to update the product record.");
+        }
+    }
+
+    /**
      * Loads all video games stored in videogames.txt.
      *
      * @return a list of VideoGame objects
@@ -91,13 +117,13 @@ public class ProductPersistence {
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 String[] i = line.split("\\|");
-                String productId = i[0];
-                String title = i[1];
-                double price = Double.parseDouble(i[2]);
-                int stock = Integer.parseInt(i[3]);
-                String platform = i[4];
-                String genre = i[5];
-                String ageRating = i[6];
+                String productId = i[1]; // i[0] is the videogame tag
+                String title = i[2];
+                double price = Double.parseDouble(i[3]);
+                int stock = Integer.parseInt(i[4]);
+                String platform = i[5];
+                String genre = i[6];
+                String ageRating = i[7];
                 list.add(new VideoGame(platform, genre, ageRating, productId, title, price, stock));
             }
         } catch (IOException e) {
@@ -118,13 +144,13 @@ public class ProductPersistence {
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 String[] i = line.split("\\|");
-                String productId = i[0];
-                String title = i[1];
-                double price = Double.parseDouble(i[2]);
-                int stock = Integer.parseInt(i[3]);
-                String brand = i[4];
-                String model = i[5];
-                String generation = i[6];
+                String productId = i[1]; // i[0] is the console tag
+                String title = i[2];
+                double price = Double.parseDouble(i[3]);
+                int stock = Integer.parseInt(i[4]);
+                String brand = i[5];
+                String model = i[6];
+                String generation = i[7];
                 list.add(new Console(brand, model, generation, productId, title, price, stock));
             }
         } catch (IOException e) {
