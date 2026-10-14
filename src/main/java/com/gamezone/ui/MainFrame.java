@@ -1,7 +1,22 @@
 package com.gamezone.ui;
+import com.gamezone.persistence.SalePersistence;
+//import com.gamezone.persistence.ReturnPersistence;
+import com.gamezone.persistence.ProductPersistence;
+import com.gamezone.persistence.SellerPersistence;
+import com.gamezone.persistence.CustomerPersistence;
+import com.gamezone.service.CustomerService;
+import com.gamezone.service.ProductService;
+import com.gamezone.service.SaleService;
+import com.gamezone.service.SellerService;
+//import com.gamezone.service.ReturnService;
+
+import com.gamezone.service.WarrantyService;
+import com.gamezone.persistence.WarrantyRepository;
 
 import java.awt.*;
 import javax.swing.*;
+
+
 
 /**
  * Main window of the GameZone Unicesar management system.
@@ -22,6 +37,22 @@ public class MainFrame extends JFrame {
     private JButton btnSales;
     private JButton btnWarranties;
     private JButton btnExit;
+    
+    
+    private final CustomerService customerService = new CustomerService();
+    private final SellerService sellerService = new SellerService();
+    private final ProductService productService = new ProductService();
+    private final SalePersistence salePersistence = new SalePersistence(productService, sellerService, customerService);
+    
+    private final WarrantyRepository warrantyRepository = new WarrantyRepository(salePersistence, productService);
+    private final WarrantyService warrantyService = new WarrantyService(warrantyRepository);
+
+    private final SaleService saleService = new SaleService(salePersistence, productService, sellerService, customerService, warrantyService);
+
+//    private ReturnPersistence returnPersistence = new ReturnPersistence(saleService, productService);
+//    private ReturnService returnService = new ReturnService(returnPersistence, saleService, productService);
+    
+
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -61,13 +92,13 @@ public class MainFrame extends JFrame {
         centerPanel = new JPanel(cardLayout);
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
-        centerPanel.add(new ProductPanel(), "products");
+        centerPanel.add(new ProductPanel(productService), "products");
         centerPanel.add(new SalePanel(), "sales");
         centerPanel.add(new PersonPanel(), "people");
         // TODO: cuando existan, agregar:
         // centerPanel.add(new PersonPanel(), "people");
         // centerPanel.add(new SalePanel(), "sales");
-        centerPanel.add(new WarrantyPanel(), "warranties");
+        centerPanel.add(new WarrantyPanel(warrantyService, saleService), "warranties");
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
         btnProducts.addActionListener(e -> cardLayout.show(centerPanel, "products"));
