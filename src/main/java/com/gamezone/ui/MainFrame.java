@@ -1,14 +1,24 @@
 package com.gamezone.ui;
+import com.gamezone.persistence.SalePersistence;
+import com.gamezone.persistence.ProductPersistence;
+import com.gamezone.persistence.SellerPersistence;
+import com.gamezone.persistence.CustomerPersistence;
+import com.gamezone.service.CustomerService;
+import com.gamezone.service.ProductService;
+import com.gamezone.service.SaleService;
+import com.gamezone.service.SellerService;
 
 import java.awt.*;
 import javax.swing.*;
+
+
 
 /**
  * Main window of the GameZone Unicesar management system.
  * Contains a sidebar menu and a central panel that switches
  * between views using CardLayout.
  *
- * @author jahdiel
+ * @author alvaro
  */
 public class MainFrame extends JFrame {
 
@@ -21,6 +31,16 @@ public class MainFrame extends JFrame {
     private JButton btnPeople;
     private JButton btnSales;
     private JButton btnExit;
+    
+    
+    private final CustomerService customerService = new CustomerService();
+    private final SellerService sellerService = new SellerService();
+    private final ProductService productService = new ProductService();
+    private final SalePersistence salePersistence = new SalePersistence(productService, sellerService, customerService);
+    
+
+    private final SaleService saleService = new SaleService(salePersistence, productService, sellerService, customerService);
+
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -58,12 +78,9 @@ public class MainFrame extends JFrame {
         centerPanel = new JPanel(cardLayout);
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
-        centerPanel.add(new ProductPanel(), "products");
+        centerPanel.add(new ProductPanel(productService), "products");
         centerPanel.add(new SalePanel(), "sales");
         centerPanel.add(new PersonPanel(), "people");
-        // TODO: cuando existan, agregar:
-        // centerPanel.add(new PersonPanel(), "people");
-        // centerPanel.add(new SalePanel(), "sales");
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
         btnProducts.addActionListener(e -> cardLayout.show(centerPanel, "products"));
