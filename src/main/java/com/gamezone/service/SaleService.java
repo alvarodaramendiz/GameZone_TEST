@@ -1,5 +1,6 @@
 package com.gamezone.service;
 
+import com.gamezone.model.Console;
 import com.gamezone.model.Customer;
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
@@ -8,6 +9,7 @@ import com.gamezone.persistence.SalePersistence;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -81,6 +83,10 @@ public class SaleService {
         for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
             String productId = entry.getKey();
             int amount = entry.getValue();
+            if (amount <= 0) {
+                throw new IllegalArgumentException(
+                    "Cantidad inválida de producto, introdujo: " + amount);
+            }
             Product product = findProduct(productId);
             if (product == null) {
                 throw new IllegalArgumentException("Producto no encontrado: " + productId);
@@ -95,19 +101,21 @@ public class SaleService {
         Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer);
         ArrayList<Sale.AmountOfProduct> pA = buildProductTrack(sale, productQuantities);
         sale.setProductTrack(pA);
-        
-//        WarrantyService.assignBasicWarranty(productId, sale, sale.getDate());
-//        
-//        if (productIdsWithExtendedWarranty != null || !productIdsWithExtendedWarranty.isEmpty()) {
-//            for (String id: productIdsWithExtendedWarranty) {
-//                WarrantyService.assignExtendedWarranty(productId, sale, sale.getDate());
-//            }
-//        }
-        
-        
-        
+
         sales.add(sale);
         repository.saveAll(sales);
+
+        // Consoles always get a basic warranty; the extended one is added on request.
+        for (Sale.AmountOfProduct item : pA) {
+            Product product = item.getSoldProduct();
+            if (product instanceof Console) {
+                warrantyService.assignBasicWarranty(product, sale, sale.getDate());
+                if (productIdsWithExtendedWarranty != null
+                        && productIdsWithExtendedWarranty.contains(product.getProductId())) {
+                    warrantyService.assignExtendedWarranty(product, sale, sale.getDate());
+                }
+            }
+        }
 
         return sale;
     }
@@ -185,5 +193,31 @@ public class SaleService {
             }
         }
         return null;
+    }
+    
+        /**
+     * Returns the sale total including the additional cost of its extended warranties.
+     *
+     * @param sale the sale to total
+     * @return the products value plus the warranty cost
+     */
+    public double getSaleTotal(Sale sale) {
+        return sale.saleTotalValue() + warrantyService.calculateAdditionalCost(sale);
+    }
+
+    /**
+     * Filters the given product ids, keeping only those that are consoles.
+     *
+     * @param productIds identifiers of the products to check (e.g. the cart)
+     * @return the ids of the products that are consoles
+     */
+    public List<String> findConsoleIds(Collection<String> productIds) {
+        List<String> result = new ArrayList<>();
+        for (String productId : productIds) {
+            if (findProduct(productId) instanceof Console) {
+                result.add(productId);
+            }
+        }
+        return result;
     }
 }
