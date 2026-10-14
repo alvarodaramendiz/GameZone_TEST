@@ -10,6 +10,7 @@ import com.gamezone.service.SaleService;
 import com.gamezone.service.SellerService;
 import com.gamezone.service.WarrantyService;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -149,16 +150,23 @@ public class SalePanel extends JPanel {
         try {
             long customerId = Long.parseLong(txtCustomerId.getText());
             long employeeCode = Long.parseLong(txtEmployeeCode.getText());
-            
-            int confirm = JOptionPane.showConfirmDialog(null, "¿Le gustaría extender la garantía de los productos?", "Confirmar garantías", JOptionPane.YES_NO_OPTION);
-            
-            if (confirm == JOptionPane.YES_OPTION) {
-                
-                
+
+            // Only consoles admit extended warranty
+            List<String> consoleIds = saleService.findConsoleIds(cart.keySet());
+            List<String> extendedIds = new ArrayList<>();
+            if (!consoleIds.isEmpty()) {
+                int confirm = JOptionPane.showConfirmDialog(this,
+                        "Las consolas " + String.join(", ", consoleIds)
+                        + " admiten garantía extendida (12 meses, 10% del precio).\n"
+                        + "¿Desea agregarla?",
+                        "Garantía extendida", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    extendedIds = consoleIds;
+                }
             }
-            
-            Sale sale = saleService.registerSale(customerId, employeeCode, cart, null);
-            JOptionPane.showMessageDialog(this, "Venta registrada. Total: " + sale.saleTotalValue());
+
+            Sale sale = saleService.registerSale(customerId, employeeCode, cart, extendedIds);
+            JOptionPane.showMessageDialog(this, "Venta registrada. Total: " + saleService.getSaleTotal(sale));
             cart.clear();
             refreshCartTable();
             refreshSalesTable();
@@ -172,11 +180,10 @@ public class SalePanel extends JPanel {
 
     private void refreshSalesTable() {
         salesTableModel.setRowCount(0);
-        List<Sale> sales = saleService.viewAllSales();
-        for (Sale s : sales) {
+        for (Sale s : saleService.viewAllSales()) {
             salesTableModel.addRow(new Object[]{
                     s.getuId(), s.getDate(), s.getCustomer().getName(),
-                    s.getSeller().getName(), s.saleTotalValue()
+                    s.getSeller().getName(), saleService.getSaleTotal(s)
             });
         }
     }
