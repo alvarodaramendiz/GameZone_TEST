@@ -5,6 +5,7 @@ import com.gamezone.model.ExtendedWarranty;
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
 import com.gamezone.model.Warranty;
+import com.gamezone.service.WarrantyService;
 import com.gamezone.persistence.WarrantyRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -23,7 +24,9 @@ public class WarrantyService {
 
     private static final String BASIC_SUFFIX = "B";
     private static final String EXTENDED_SUFFIX = "E";
-
+    public static final int EXPIRING_SOON_DAYS = 30;
+    
+    private WarrantyService warrantyService;
     private final WarrantyRepository repository;
     private final List<Warranty> warranties;
 
@@ -115,6 +118,23 @@ public class WarrantyService {
     public List<Warranty> listAllWarranties() {
         return Collections.unmodifiableList(warranties);
     }
+    
+        /**
+     * Returns the status of a warranty on the current date.
+     *
+     * @param warranty the warranty to evaluate
+     * @return "Vencida", "Por expirar" (ends within EXPIRING_SOON_DAYS) or "Vigente"
+     */
+    public String getStatus(Warranty warranty) {
+        LocalDate today = LocalDate.now();
+        if (!warranty.isActive(today)) {
+            return "Vencida";
+        }
+        if (!warranty.getEndDate().isAfter(today.plusDays(EXPIRING_SOON_DAYS))) {
+            return "Por expirar";
+        }
+        return "Vigente";
+    }
 
     /**
      * Returns the warranties that are active on the current date.
@@ -201,6 +221,23 @@ public class WarrantyService {
         if (startDate == null) {
             throw new IllegalArgumentException("La garantía debe tener fecha de inicio.");
         }
+    }
+    
+    /**
+     * Sums the additional cost of every warranty of a sale. Basic warranties
+     * cost 0, so the result is the cost of the extended warranties.
+     *
+     * @param sale the sale to evaluate
+     * @return the total additional cost
+     */
+    public double calculateAdditionalCost(Sale sale) {
+        double total = 0;
+        for (Warranty warranty : warranties) {
+            if (warranty.getSale().getuId() == sale.getuId()) {
+                total += warranty.getAdditionalCost();
+            }
+        }
+        return total;
     }
 
     /**
