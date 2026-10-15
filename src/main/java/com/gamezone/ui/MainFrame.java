@@ -12,12 +12,14 @@ import com.gamezone.service.ReturnService;
 import java.awt.*;
 import javax.swing.*;
 
+
+
 /**
  * Main window of the GameZone Unicesar management system.
  * Contains a sidebar menu and a central panel that switches
  * between views using CardLayout.
  *
- * @author jahdiel
+ * @author alvaro
  */
 public class MainFrame extends JFrame {
     
@@ -42,6 +44,10 @@ public class MainFrame extends JFrame {
     private JButton btnSales;
     private JButton btnReturns;
     private JButton btnExit;
+    
+    
+
+
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -81,7 +87,7 @@ public class MainFrame extends JFrame {
         centerPanel = new JPanel(cardLayout);
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
-        centerPanel.add(new ProductPanel(), "products");
+        centerPanel.add(new ProductPanel(productService), "products");
         centerPanel.add(new PersonPanel(), "people");
         centerPanel.add(new SalePanel(), "sales");
         centerPanel.add(new ReturnPanel(returnService, saleService), "returns");
