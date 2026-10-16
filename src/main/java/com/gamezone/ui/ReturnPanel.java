@@ -130,11 +130,10 @@ public class ReturnPanel extends JPanel {
         formWrapper.add(form, BorderLayout.CENTER);
         formWrapper.add(btnSearch, BorderLayout.SOUTH);
         reportTableModel = new DefaultTableModel(
-                new String[]{"Mes", "Año", "Ganancias", "Costo Devoluciones", "Balance Neto"}, 0);
+                new String[]{"Mes", "Año", "Balance Neto Mensual"}, 0);
         reportTable = new JTable(reportTableModel);
         panel.add(formWrapper, BorderLayout.NORTH);
         panel.add(new JScrollPane(reportTable), BorderLayout.CENTER);
-        refreshReportTable();
         return panel;
     }
 
@@ -335,37 +334,16 @@ public class ReturnPanel extends JPanel {
     }
 
     private void refreshReportTable() {
-        // Desarrollar cuando se complete ReturnService y RreturnPersistence
-        
         String month = txtMonth.getText();
         String year = txtYear.getText();
         try {
             reportTableModel.setRowCount(0);
             YearMonth yearMonth = YearMonth.of(Integer.valueOf(year), Integer.valueOf(month));
-            var sales = saleService.viewAllSales();
-            var returns = returnService.viewAllReturns();
-            double salesIncome = 0;
-            double returnsCost = 0;
             double balance = 0;
-            for (Sale s : sales) {
-                if (YearMonth.of(s.getDate().getYear(), s.getDate().getMonthValue()) == yearMonth) {
-                    salesIncome += s.getTotalValue();
-                    JOptionPane.showMessageDialog(null, "Se encontró el período indicado en ventas.", "Balance Mensual", 0);
-                }
-            }
-            for (Return r : returns) {
-                if (YearMonth.of(r.getDate().getYear(), r.getDate().getMonthValue()) != yearMonth) {
-                } else {
-                    returnsCost += r.getReimbursedAmount();
-                    JOptionPane.showMessageDialog(null, "Se encontró el período indicado en devoluciones.", "Balance Mensual", 0);
-                }
-            }
-            balance = salesIncome - returnsCost;
+            balance = returnService.generateMonthlyBalance(Integer.valueOf(year), Integer.valueOf(month));
             reportTableModel.addRow(new Object[]{
                 yearMonth.getMonth().toString(),
                 yearMonth.getYear(),
-                salesIncome,
-                returnsCost,
                 balance}
             );
         } catch (NumberFormatException e) {
