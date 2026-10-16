@@ -1,4 +1,15 @@
 package com.gamezone.ui;
+import com.gamezone.persistence.SalePersistence;
+import com.gamezone.persistence.ProductPersistence;
+import com.gamezone.persistence.SellerPersistence;
+import com.gamezone.persistence.CustomerPersistence;
+import com.gamezone.service.CustomerService;
+import com.gamezone.service.ProductService;
+import com.gamezone.service.SaleService;
+import com.gamezone.service.SellerService;
+
+import com.gamezone.service.PromotionService;
+import com.gamezone.persistence.PromotionRepository;
 
 import java.awt.*;
 import javax.swing.*;
@@ -22,6 +33,17 @@ public class MainFrame extends JFrame {
     private JButton btnSales;
     private JButton btnPromotions;
     private JButton btnExit;
+    
+    
+    private final CustomerService customerService = new CustomerService();
+    private final SellerService sellerService = new SellerService();
+    private final ProductService productService = new ProductService();
+    private final SalePersistence salePersistence = new SalePersistence(productService, sellerService, customerService);
+    
+    private final PromotionRepository promotionRepository = new PromotionRepository();
+    private final PromotionService promotionService = new PromotionService(promotionRepository);
+
+    private final SaleService saleService = new SaleService(salePersistence, productService, sellerService, customerService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -67,7 +89,7 @@ public class MainFrame extends JFrame {
         // TODO: cuando existan, agregar:
         // centerPanel.add(new PersonPanel(), "people");
         // centerPanel.add(new SalePanel(), "sales");
-        centerPanel.add(new PromotionPanel(), "promotions");
+        centerPanel.add(new PromotionPanel(promotionService), "promotions");
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
         btnProducts.addActionListener(e -> cardLayout.show(centerPanel, "products"));
