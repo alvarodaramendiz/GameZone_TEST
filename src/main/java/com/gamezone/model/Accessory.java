@@ -1,20 +1,22 @@
 package com.gamezone.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
- Base class for all video game accessories sold by GameZone
- Unicesar. Extends Product to reuse common sellable-item behavior and
- adds console compatibility 
-  @author jahdiel
+ * Base class for all video game accessories sold by GameZone
+ * Unicesar. Extends Product to reuse common sellable-item behavior and
+ * adds console compatibility.
+ *
+ * @author jahdiel
  */
 public abstract class Accessory extends Product {
 
     private List<String> compatibleConsoleIds;
 
     /**
-     * Creates a new Accessory 
+     * Creates a new Accessory.
      *
      * @param productId the unique ID for the accessory
      * @param title the name of the accessory
@@ -26,9 +28,14 @@ public abstract class Accessory extends Product {
         this.compatibleConsoleIds = new ArrayList<>();
     }
 
-    /** @return the list of console IDs this accessory is compatible with */
+    /**
+     * Returns the console IDs this accessory is compatible with. The list is
+     * read-only; use {@link #addCompatibleConsole(String)} to modify it.
+     *
+     * @return an unmodifiable view of the compatible console IDs
+     */
     public List<String> getCompatibleConsoleIds() {
-        return compatibleConsoleIds;
+        return Collections.unmodifiableList(compatibleConsoleIds);
     }
 
     /**
