@@ -16,61 +16,85 @@ import javax.swing.table.DefaultTableModel;
  */
 public class ProductPanel extends JPanel {
 
-    private ProductService productService = new ProductService();
+    private static final String TYPE_VIDEOGAME = "VideoGame";
+    private static final String TYPE_CONSOLE = "Console";
+
+    private final ProductService productService;
 
     private JTextField txtId, txtTitle, txtPrice, txtStock, txtAttr1, txtAttr2, txtAttr3;
+    private JLabel lblAttr1, lblAttr2, lblAttr3;
     private JComboBox<String> comboType;
     private JTable table;
     private DefaultTableModel tableModel;
 
-    public ProductPanel() {
+    public ProductPanel(ProductService productService) {
+        this.productService = productService;
+
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         add(createFormPanel(), BorderLayout.NORTH);
         add(createTablePanel(), BorderLayout.CENTER);
 
+        updateAttributeLabels();
         refreshTable();
     }
 
     private JPanel createFormPanel() {
-        JPanel form = new JPanel(new GridLayout(4, 4, 8, 8));
-        form.setBorder(BorderFactory.createTitledBorder("Registrar producto"));
+        JPanel wrapper = new JPanel(new BorderLayout(10, 10));
+        wrapper.setBorder(BorderFactory.createTitledBorder("Registrar producto"));
 
-        comboType = new JComboBox<>(new String[]{"VideoGame", "Console"});
+        comboType = new JComboBox<>(new String[]{TYPE_VIDEOGAME, TYPE_CONSOLE});
+        comboType.addActionListener(e -> updateAttributeLabels());
+
         txtId = new JTextField();
         txtTitle = new JTextField();
         txtPrice = new JTextField();
         txtStock = new JTextField();
-        txtAttr1 = new JTextField(); // platform / brand
-        txtAttr2 = new JTextField(); // genre / model
-        txtAttr3 = new JTextField(); // ageRating / generation
+        txtAttr1 = new JTextField();
+        txtAttr2 = new JTextField();
+        txtAttr3 = new JTextField();
 
-        form.add(new JLabel("Tipo:"));
-        form.add(comboType);
-        form.add(new JLabel("ID:"));
-        form.add(txtId);
+        lblAttr1 = new JLabel();
+        lblAttr2 = new JLabel();
+        lblAttr3 = new JLabel();
 
-        form.add(new JLabel("Título:"));
-        form.add(txtTitle);
-        form.add(new JLabel("Precio:"));
-        form.add(txtPrice);
+        // Common fields: type, id, title, price, stock
+        JPanel commonFields = new JPanel(new GridLayout(3, 4, 8, 8));
+        commonFields.add(new JLabel("Tipo:"));
+        commonFields.add(comboType);
+        commonFields.add(new JLabel("ID:"));
+        commonFields.add(txtId);
+        commonFields.add(new JLabel("Título:"));
+        commonFields.add(txtTitle);
+        commonFields.add(new JLabel("Precio:"));
+        commonFields.add(txtPrice);
+        commonFields.add(new JLabel("Stock:"));
+        commonFields.add(txtStock);
+        commonFields.add(new JLabel());
+        commonFields.add(new JLabel());
 
-        form.add(new JLabel("Stock:"));
-        form.add(txtStock);
-        form.add(new JLabel("Platform/Brand:"));
-        form.add(txtAttr1);
+        // Type-specific fields (labels change with the selected type)
+        JPanel specificFields = new JPanel(new GridLayout(1, 6, 8, 8));
+        specificFields.add(lblAttr1);
+        specificFields.add(txtAttr1);
+        specificFields.add(lblAttr2);
+        specificFields.add(txtAttr2);
+        specificFields.add(lblAttr3);
+        specificFields.add(txtAttr3);
 
-        form.add(new JLabel("Genre/Model:"));
-        form.add(txtAttr2);
-        form.add(new JLabel("AgeRating/Generation:"));
-        form.add(txtAttr3);
+        JPanel fields = new JPanel(new BorderLayout(0, 8));
+        fields.add(commonFields, BorderLayout.NORTH);
+        fields.add(specificFields, BorderLayout.SOUTH);
 
         JButton btnRegister = new JButton("Registrar");
         btnRegister.addActionListener(e -> registerProduct());
-        form.add(btnRegister);
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttons.add(btnRegister);
 
-        return form;
+        wrapper.add(fields, BorderLayout.CENTER);
+        wrapper.add(buttons, BorderLayout.SOUTH);
+        return wrapper;
     }
 
     private JPanel createTablePanel() {
@@ -85,6 +109,19 @@ public class ProductPanel extends JPanel {
         return panel;
     }
 
+    /** Shows the attribute names that match the selected product type. */
+    private void updateAttributeLabels() {
+        if (TYPE_VIDEOGAME.equals(comboType.getSelectedItem())) {
+            lblAttr1.setText("Plataforma:");
+            lblAttr2.setText("Género:");
+            lblAttr3.setText("Clasificación:");
+        } else {
+            lblAttr1.setText("Marca:");
+            lblAttr2.setText("Modelo:");
+            lblAttr3.setText("Generación:");
+        }
+    }
+
     private void registerProduct() {
         try {
             String id = txtId.getText();
@@ -93,7 +130,7 @@ public class ProductPanel extends JPanel {
             int stock = Integer.parseInt(txtStock.getText());
             String result;
 
-            if (comboType.getSelectedItem().equals("VideoGame")) {
+            if (TYPE_VIDEOGAME.equals(comboType.getSelectedItem())) {
                 VideoGame vg = new VideoGame(txtAttr1.getText(), txtAttr2.getText(),
                         txtAttr3.getText(), id, title, price, stock);
                 result = productService.registerVideoGame(vg);
