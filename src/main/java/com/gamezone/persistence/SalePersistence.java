@@ -28,6 +28,12 @@ import java.util.List;
  * the file defined by {@link PlainArchives#SALES}, resolving seller,
  * customer, and product references through the injected
  * {@link ProductService}, {@link SellerService}, and {@link CustomerService}.
+ *
+ * Line format:
+ * <pre>
+ * uId;date;employeeCode;customerId;totalValue;productId:amount|...;promotionName;discountAmount
+ * </pre>
+ * The last two fields are optional so older lines can still be loaded.
  */
 public class SalePersistence {
 
@@ -114,7 +120,9 @@ public class SalePersistence {
             String.valueOf(sale.getSeller().getEmployeeCode()),
             String.valueOf(sale.getCustomer().getiD()),
             String.valueOf(sale.getTotalValue()),
-            productTrackToField(sale.getProductTrack()));
+            productTrackToField(sale.getProductTrack()),
+            sanitize(sale.getAppliedPromotionName()),
+            String.valueOf(sale.getDiscountAmount()));
     }
 
     private String productTrackToField(List<AmountOfProduct> productTrack) {
@@ -144,9 +152,11 @@ public class SalePersistence {
         LocalDate date = LocalDate.parse(fields[1]);
         long employeeCode = Long.parseLong(fields[2]);
         long customerId = Long.parseLong(fields[3]);
-        // fields[4] es el valor total guardado; se recalcula desde los
-        // productos para que no quede desactualizado, así que no se usa aquí.
+        double totalValue = Double.parseDouble(fields[4]);
         String productsField = fields.length > 5 ? fields[5] : "";
+        String promotionName = fields.length > 6 ? fields[6] : "";
+        double discountAmount = fields.length > 7 && !fields[7].isBlank()
+            ? Double.parseDouble(fields[7]) : 0;
 
         Seller seller = sellerService.searchSeller(employeeCode);
         Customer customer = customerService.searchCustomer(customerId);
@@ -154,9 +164,9 @@ public class SalePersistence {
             throw new RuntimeException("Failed to resolve seller or customer for sale " + uId);
         }
 
-        // AJUSTAR LA VENTA PARA EL SISTEMA DE PROMOCIONES
-        Sale sale = new Sale(uId, date, new ArrayList<>(), seller, customer, "", 0);
+        Sale sale = new Sale(uId, date, new ArrayList<>(), seller, customer, promotionName, discountAmount);
         sale.setProductTrack(fieldToProductTrack(sale, productsField));
+        sale.setTotalValue(totalValue);
         return sale;
     }
 
@@ -182,6 +192,17 @@ public class SalePersistence {
     }
 
     /**
+     * Prepares a text value to be stored as a field, replacing the field
+     * separator so it cannot break the line.
+     *
+     * @param value the text to store, may be null
+     * @return the text without field separators, or an empty string
+     */
+    private String sanitize(String value) {
+        return value == null ? "" : value.replace(FIELD_SEPARATOR, ",");
+    }
+
+    /**
      * Looks up a product by its ID using {@link ProductService#listProducts()},
      * since {@code ProductService} does not expose a direct search method.
      *
@@ -197,3 +218,4 @@ public class SalePersistence {
         return null;
     }
 }
+
