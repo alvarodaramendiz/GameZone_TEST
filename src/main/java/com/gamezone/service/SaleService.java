@@ -2,6 +2,7 @@ package com.gamezone.service;
 
 import com.gamezone.model.Customer;
 import com.gamezone.model.Product;
+import com.gamezone.model.Promotion;
 import com.gamezone.model.Sale;
 import com.gamezone.model.Seller;
 import com.gamezone.persistence.SalePersistence;
@@ -20,6 +21,7 @@ public class SaleService {
 
     private final SalePersistence repository;
     private final ProductService productService;
+    private final PromotionService promotionService;
     private final SellerService sellerService;
     private final CustomerService customerService;
     private final List<Sale> sales;
@@ -30,13 +32,15 @@ public class SaleService {
      *
      * @param repository      the repository used to persist and load sales
      * @param productService  the service used to resolve and update products
+     * @param promotionService the service used to find the best active promotion
      * @param sellerService   the service used to resolve sellers
      * @param customerService the service used to resolve customers
      */
     public SaleService(SalePersistence repository, ProductService productService,
-            SellerService sellerService, CustomerService customerService) {
+            PromotionService promotionService, SellerService sellerService, CustomerService customerService) {
         this.repository = repository;
         this.productService = productService;
+        this.promotionService = promotionService;
         this.sellerService = sellerService;
         this.customerService = customerService;
         this.sales = new ArrayList<>(repository.loadAll());
@@ -89,11 +93,9 @@ public class SaleService {
         }
 
         long uId = System.currentTimeMillis();
-        // FALTA EL DESCUENTO
-        // AJUSTAR LA VENTA PARA EL SISTEMA DE PROMOCIONES
         Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer, "", 0);
-        sale.setTotalValue(calculateValue(sale));
         sale.setProductTrack(buildProductTrack(sale, productQuantities));
+        applyBestPromotion(sale);
 
         // NOTA: a diferencia del SaleService de referencia, aquí no se
         // descuenta el stock todavía. ProductDAO solo sabe agregar productos
@@ -107,28 +109,28 @@ public class SaleService {
         return sale;
     }
     
-        private double calculateValue(Sale sale) {
-            
-            double resultValue = 0;
-            ArrayList<Sale.AmountOfProduct> productTrack = sale.getProductTrack();
-            for (Sale.AmountOfProduct p: productTrack) {
-                double price;
-                double amount;
-                amount = p.getProductAmount();
-                price = p.getSoldProduct().getPrice();
-                resultValue+=(price*amount);
-            }
-            return resultValue;
+    /**
+     * Applies to the sale the active promotion that gives the highest
+     * discount, calculated only over the subtotal of the items, and sets the
+     * final total (subtotal minus discount). If no promotion applies, the
+     * total is the subtotal.
+     *
+     * @param sale the sale whose items are already loaded
+     */
+    private void applyBestPromotion(Sale sale) {
+        double subtotal = sale.getSubtotal();
+        Promotion best = promotionService.findBestPromotionFor(sale);
+        if (best != null) {
+            double discount = Math.min(best.calculateDiscount(sale), subtotal);
+            sale.setAppliedPromotionName(best.getName());
+            sale.setDiscountAmount(discount);
+        } else {
+            sale.setAppliedPromotionName("");
+            sale.setDiscountAmount(0);
         }
-        
-        private double calculateDiscount(Sale sale) {
-            
-            double resultDiscount = 0;
-            if (sale.getAppliedPromotion() != null || !sale.getAppliedPromotion().isEmpty()) {
-                resultDiscount=resultDiscount*(1-sale.getPromotionDiscount());
-            }
-            return resultDiscount;
-        }
+        sale.setTotalValue(subtotal - sale.getDiscountAmount());
+    }
+
     /**
      * Returns an unmodifiable view of every registered sale.
      *
@@ -204,3 +206,4 @@ public class SaleService {
         return null;
     }
 }
+
