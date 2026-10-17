@@ -2,11 +2,8 @@ package com.gamezone.ui;
 
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
-import com.gamezone.persistence.SalePersistence;
-import com.gamezone.service.CustomerService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
-import com.gamezone.service.SellerService;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,12 +19,7 @@ import javax.swing.table.DefaultTableModel;
 public class SalePanel extends JPanel {
 
     private ProductService productService = new ProductService();
-    private SellerService sellerService = new SellerService();
-    private CustomerService customerService = new CustomerService();
-    private SalePersistence salePersistence =
-            new SalePersistence(productService, sellerService, customerService);
-    private SaleService saleService =
-            new SaleService(salePersistence, productService, sellerService, customerService);
+    private final SaleService saleService;
 
     private JTextField txtCustomerId, txtEmployeeCode;
     private JComboBox<String> comboProduct;
@@ -39,7 +31,13 @@ public class SalePanel extends JPanel {
     private DefaultTableModel salesTableModel;
     private JTable salesTable;
 
-    public SalePanel() {
+    /**
+     * Creates the sales panel.
+     *
+     * @param saleService the shared sale service created in MainFrame
+     */
+    public SalePanel(SaleService saleService) {
+        this.saleService = saleService;
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
@@ -146,7 +144,7 @@ public class SalePanel extends JPanel {
 
             Sale sale = saleService.registerSale(customerId, employeeCode, cart);
 
-            JOptionPane.showMessageDialog(this, "Venta registrada. Total: " + sale.getTotalValue());
+            JOptionPane.showMessageDialog(this, new JTextArea(sale.receiptGen()), "Venta registrada", JOptionPane.INFORMATION_MESSAGE);
             cart.clear();
             refreshCartTable();
             refreshSalesTable();
