@@ -43,7 +43,7 @@ public class MainFrame extends JFrame {
     private final PromotionRepository promotionRepository = new PromotionRepository();
     private final PromotionService promotionService = new PromotionService(promotionRepository);
 
-    private final SaleService saleService = new SaleService(salePersistence, productService, sellerService, customerService);
+    private final SaleService saleService = new SaleService(salePersistence, productService, promotionService, sellerService, customerService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -84,7 +84,7 @@ public class MainFrame extends JFrame {
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
         centerPanel.add(new ProductPanel(), "products");
-        centerPanel.add(new SalePanel(), "sales");
+        centerPanel.add(new SalePanel(saleService), "sales");
         centerPanel.add(new PersonPanel(), "people");
         // TODO: cuando existan, agregar:
         // centerPanel.add(new PersonPanel(), "people");
