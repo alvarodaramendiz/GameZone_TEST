@@ -46,20 +46,20 @@ public final class Sale {
     private ArrayList<AmountOfProduct> productTrack; // 
     private Seller seller; // Vendedor que genera la venta
     private Customer customer; // Consumidor o Cliente que realiza la compra
-    private String appliedPromotion; // Nombre de la promoción aplicada a la venta
-    private double promotionDiscount; // Valor de descuento promocional del valor total de la venta
+    private String appliedPromotionName; // Name of the promotion applied to the sale
+    private double discountAmount; // Discount granted by the applied promotion, in pesos
     private double totalValue; // Valor total monetario de la venta
     
     // Constructores para inicialización parametrizada
     
-    public Sale(long uId, LocalDate date, ArrayList<AmountOfProduct> productTrack, Seller seller, Customer customer, String appliedPromotion, double promotionDiscount) {
+    public Sale(long uId, LocalDate date, ArrayList<AmountOfProduct> productTrack, Seller seller, Customer customer, String appliedPromotionName, double discountAmount) {
         this.uId = uId;
         this.date = date;
         this.productTrack = productTrack;
         this.seller = seller;
         this.customer = customer;
-        this.appliedPromotion = appliedPromotion;
-        this.promotionDiscount = promotionDiscount;
+        this.appliedPromotionName = appliedPromotionName;
+        this.discountAmount = discountAmount;
         this.totalValue = 0;
     }
     
@@ -113,46 +113,87 @@ public final class Sale {
         this.totalValue = total;
     }
 
-    public String getAppliedPromotion() {
-        return appliedPromotion;
+    /**
+     * Returns the name of the promotion applied to the sale.
+     *
+     * @return the promotion name, or an empty string if no promotion was applied
+     */
+    public String getAppliedPromotionName() {
+        return appliedPromotionName;
     }
 
-    public void setAppliedPromotion(String appliedPromotion) {
-        this.appliedPromotion = appliedPromotion;
+    /**
+     * Sets the name of the promotion applied to the sale.
+     *
+     * @param appliedPromotionName the promotion name
+     */
+    public void setAppliedPromotionName(String appliedPromotionName) {
+        this.appliedPromotionName = appliedPromotionName;
     }
 
-    public double getPromotionDiscount() {
-        return promotionDiscount;
+    /**
+     * Returns the discount granted by the applied promotion.
+     *
+     * @return the discount amount in pesos
+     */
+    public double getDiscountAmount() {
+        return discountAmount;
     }
 
-    public void setPromotionDiscount(double promotionDiscount) {
-        this.promotionDiscount = promotionDiscount;
+    /**
+     * Sets the discount granted by the applied promotion.
+     *
+     * @param discountAmount the discount amount in pesos
+     */
+    public void setDiscountAmount(double discountAmount) {
+        this.discountAmount = discountAmount;
     }
-    
-    
+
+    /**
+     * Calculates the subtotal of the sale: the sum of the price of every
+     * sold item multiplied by its quantity, before any discount.
+     *
+     * @return the subtotal of the sale
+     */
+    public double getSubtotal() {
+        double subtotal = 0;
+        for (AmountOfProduct item : productTrack) {
+            subtotal += item.getSoldProduct().getPrice() * item.getProductAmount();
+        }
+        return subtotal;
+    }
+
+    /**
+     * Builds the receipt of the sale in Spanish, showing the sold items, the
+     * subtotal, the applied promotion with its discount and the final total.
+     *
+     * @return the formatted receipt
+     */
     public String receiptGen() {
-        
         StringBuilder saleReceipt = new StringBuilder();
         int index = 0;
-        
-            saleReceipt.append("============== GAMEZONE UNICESAR FACTURA ==============");
-            saleReceipt.append("IDENTIFICADOR    :   ").append(uId);
-            saleReceipt.append("FECHA DE VENTA   :   ").append(date);
-            saleReceipt.append("CLIENTE          :   ").append(customer);
-            saleReceipt.append("VENDEDOR         :   ").append(seller);
-            saleReceipt.append("================ PRODUCTOS ADQUIRIDOS =================");
-        for (AmountOfProduct e: productTrack) {
+        saleReceipt.append("============== GAMEZONE UNICESAR FACTURA ==============\n");
+        saleReceipt.append("IDENTIFICADOR    : ").append(uId).append("\n");
+        saleReceipt.append("FECHA DE VENTA   : ").append(date).append("\n");
+        saleReceipt.append("CLIENTE          : ").append(customer.getName()).append("\n");
+        saleReceipt.append("VENDEDOR         : ").append(seller.getName()).append("\n");
+        saleReceipt.append("================ PRODUCTOS ADQUIRIDOS =================\n");
+        for (AmountOfProduct e : productTrack) {
             index++;
-            saleReceipt.append("PRODUCTO  #").append(index).append("  : ").append(e.getSoldProduct());
-            saleReceipt.append("CANTIDAD         : ").append(e.getProductAmount());
+            saleReceipt.append("PRODUCTO #").append(index).append("      : ")
+                    .append(e.getSoldProduct().getTitle())
+                    .append(" - $").append(e.getSoldProduct().getPrice())
+                    .append(" x ").append(e.getProductAmount()).append("\n");
         }
-            saleReceipt.append("===================== VALOR TOTAL =====================");
-            saleReceipt.append("PROMOCIÓN        : ").append(appliedPromotion);
-            saleReceipt.append("DESCUENTO        : ").append(promotionDiscount);
-            saleReceipt.append("VALOR DE LA VENTA: ").append(totalValue/(1-promotionDiscount));
-            saleReceipt.append("VALOR A PAGAR    : ").append(totalValue);
+        saleReceipt.append("===================== VALOR TOTAL =====================\n");
+        saleReceipt.append("SUBTOTAL         : $").append(getSubtotal()).append("\n");
+        boolean hasPromotion = appliedPromotionName != null && !appliedPromotionName.isBlank();
+        saleReceipt.append("PROMOCIÓN        : ").append(hasPromotion ? appliedPromotionName : "Ninguna").append("\n");
+        saleReceipt.append("DESCUENTO        : $").append(discountAmount).append("\n");
+        saleReceipt.append("TOTAL A PAGAR    : $").append(totalValue).append("\n");
         return saleReceipt.toString();
     }
+
     /**
     * Checks if the sale is eligible for a return within 30 calendar days.
     *
