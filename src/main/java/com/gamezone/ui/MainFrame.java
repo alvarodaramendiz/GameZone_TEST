@@ -23,7 +23,7 @@ import javax.swing.*;
  * Contains a sidebar menu and a central panel that switches
  * between views using CardLayout.
  *
- * @author jahdiel
+ * @author alvaro
  */
 public class MainFrame extends JFrame {
 
@@ -89,7 +89,7 @@ public class MainFrame extends JFrame {
         centerPanel = new JPanel(cardLayout);
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
-        centerPanel.add(new ProductPanel(), "products");
+        centerPanel.add(new ProductPanel(productService), "products");
         centerPanel.add(new SalePanel(accessoryService), "sales");
         centerPanel.add(new PersonPanel(), "people");
         centerPanel.add(new AccessoryPanel(accessoryService), "accesories");
