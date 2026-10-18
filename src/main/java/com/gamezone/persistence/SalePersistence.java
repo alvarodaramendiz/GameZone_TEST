@@ -9,6 +9,7 @@ import com.gamezone.model.Seller;
 import com.gamezone.service.CustomerService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SellerService;
+import com.gamezone.service.AccessoryService;
 
 import utilities.PlainArchives;
 
@@ -38,6 +39,7 @@ public class SalePersistence {
     private static final String PRODUCT_AMOUNT_SEPARATOR = ":";
 
     private final ProductService productService;
+    private final AccessoryService accessoryService;
     private final SellerService sellerService;
     private final CustomerService customerService;
 
@@ -45,12 +47,15 @@ public class SalePersistence {
      * Creates a new repository that resolves sale references through the
      * given services.
      *
-     * @param productService  the service used to resolve product references
-     * @param sellerService   the service used to resolve seller references
+     * @param productService the service used to resolve product references
+     * @param accessoryService the service used to resolve accessory references
+     * @param sellerService the service used to resolve seller references
      * @param customerService the service used to resolve customer references
      */
-    public SalePersistence(ProductService productService, SellerService sellerService, CustomerService customerService) {
+    public SalePersistence(ProductService productService, AccessoryService accessoryService,
+            SellerService sellerService, CustomerService customerService) {
         this.productService = productService;
+        this.accessoryService = accessoryService;
         this.sellerService = sellerService;
         this.customerService = customerService;
     }
@@ -184,11 +189,12 @@ public class SalePersistence {
     }
 
     /**
-     * Looks up a product by its ID using {@link ProductService#listProducts()},
-     * since {@code ProductService} does not expose a direct search method.
+     * Looks up a sold item by its ID: first among the regular products using
+     * {@link ProductService#listProducts()} (since {@code ProductService} does
+     * not expose a direct search method), then among the accessories.
      *
-     * @param productId the ID of the product to find
-     * @return the matching product, or {@code null} if none is found
+     * @param productId the ID of the product or accessory to find
+     * @return the matching item, or {@code null} if none is found
      */
     private Product findProduct(String productId) {
         for (Product product : productService.listProducts()) {
@@ -196,6 +202,6 @@ public class SalePersistence {
                 return product;
             }
         }
-        return null;
+        return accessoryService.findById(productId);
     }
 }

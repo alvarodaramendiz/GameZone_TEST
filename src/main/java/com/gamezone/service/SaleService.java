@@ -20,6 +20,7 @@ public class SaleService {
 
     private final SalePersistence repository;
     private final ProductService productService;
+    private final AccessoryService accessoryService;
     private final SellerService sellerService;
     private final CustomerService customerService;
     private final List<Sale> sales;
@@ -28,15 +29,18 @@ public class SaleService {
      * Creates a new service backed by the given repository and collaborating
      * services, loading the current sales history into memory.
      *
-     * @param repository      the repository used to persist and load sales
-     * @param productService  the service used to resolve and update products
-     * @param sellerService   the service used to resolve sellers
+     * @param repository the repository used to persist and load sales
+     * @param productService the service used to resolve and update products
+     * @param accessoryService the service used to resolve and update accessories
+     * @param sellerService the service used to resolve sellers
      * @param customerService the service used to resolve customers
      */
     public SaleService(SalePersistence repository, ProductService productService,
-            SellerService sellerService, CustomerService customerService) {
+            AccessoryService accessoryService, SellerService sellerService,
+            CustomerService customerService) {
         this.repository = repository;
         this.productService = productService;
+        this.accessoryService = accessoryService;
         this.sellerService = sellerService;
         this.customerService = customerService;
         this.sales = new ArrayList<>(repository.loadAll());
@@ -44,8 +48,9 @@ public class SaleService {
 
     /**
      * Registers a new sale after validating that it contains at least one
-     * product, that the customer, seller, and products exist, and that
-     * enough stock is available for every requested product. Records the
+     * item, that the customer, seller, and items (products or accessories)
+     * exist, and that enough stock is available for every requested item.
+     * Discounts the sold units from the corresponding inventory, records the
      * sale and persists the updated sales history.
      *
      * AmountOfProduct is a non-static inner class of Sale, so it can't be
@@ -53,13 +58,14 @@ public class SaleService {
      * empty track, then its AmountOfProduct entries are built from that
      * instance.
      *
-     * @param customerId        the id of the customer making the purchase
-     * @param employeeCode      the employee code of the seller handling the sale
-     * @param productQuantities map of productId to quantity being sold
+     * @param customerId the id of the customer making the purchase
+     * @param employeeCode the employee code of the seller handling the sale
+     * @param productQuantities map of product or accessory id to quantity being sold
      * @return the registered sale
-     * @throws IllegalArgumentException if the product map is empty, if the
-     *                                  customer, seller, or a product cannot
-     *                                  be found, or if stock is insufficient
+     * @throws IllegalArgumentException if the map is empty, if the customer,
+     *                                  seller, or an item cannot be found, if a
+     *                                  quantity is not positive, or if stock is
+     *                                  insufficient
      */
     public Sale registerSale(long customerId, long employeeCode, Map<String, Integer> productQuantities) {
         if (productQuantities == null || productQuantities.isEmpty()) {
@@ -70,6 +76,7 @@ public class SaleService {
         if (customer == null) {
             throw new IllegalArgumentException("Cliente no encontrado: " + customerId);
         }
+
         Seller seller = sellerService.searchSeller(employeeCode);
         if (seller == null) {
             throw new IllegalArgumentException("Vendedor no encontrado: " + employeeCode);
@@ -78,11 +85,16 @@ public class SaleService {
         for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
             String productId = entry.getKey();
             int amount = entry.getValue();
+
             Product product = findProduct(productId);
             if (product == null) {
                 throw new IllegalArgumentException("Producto no encontrado: " + productId);
             }
-            if (!productService.hasEnoughStock(productId, amount)) {
+            if (amount <= 0) {
+                throw new IllegalArgumentException(
+                    "La cantidad debe ser mayor que cero para el producto: " + product.getTitle());
+            }
+            if (!hasEnoughStock(productId, amount)) {
                 throw new IllegalArgumentException(
                     "Stock insuficiente para el producto: " + product.getTitle());
             }
@@ -92,15 +104,13 @@ public class SaleService {
         Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer);
         sale.setProductTrack(buildProductTrack(sale, productQuantities));
 
-        // NOTA: a diferencia del SaleService de referencia, aquí no se
-        // descuenta el stock todavía. ProductDAO solo sabe agregar productos
-        // (saveProduct los añade al final del archivo) y no tiene un método
-        // para actualizar uno existente. En cuanto ProductDAO/ProductService
-        // tengan esa operación, aquí es donde se llamaría.
+        // Every item was validated above, so discounting the stock cannot fail midway
+        for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
+            updateStock(entry.getKey(), -entry.getValue());
+        }
 
         sales.add(sale);
         repository.saveAll(sales);
-
         return sale;
     }
 
@@ -164,18 +174,62 @@ public class SaleService {
     }
 
     /**
-     * Looks up a product by its ID using {@link ProductService#listProducts()},
-     * since {@code ProductService} does not expose a direct search method.
+     * Looks up a sellable item by its ID: first among the regular products
+     * (video games and consoles), then among the accessories.
+     *
+     * @param productId the ID of the product or accessory to find
+     * @return the matching item, or {@code null} if none is found
+     */
+    private Product findProduct(String productId) {
+        Product product = findRegularProduct(productId);
+        if (product != null) {
+            return product;
+        }
+        return accessoryService.findById(productId);
+    }
+
+    /**
+     * Looks up a regular product (video game or console) using
+     * {@link ProductService#listProducts()}, since {@code ProductService}
+     * does not expose a direct search method.
      *
      * @param productId the ID of the product to find
      * @return the matching product, or {@code null} if none is found
      */
-    private Product findProduct(String productId) {
+    private Product findRegularProduct(String productId) {
         for (Product product : productService.listProducts()) {
             if (product.getProductId().equals(productId)) {
                 return product;
             }
         }
         return null;
+    }
+
+    /**
+     * Checks the stock of an item, delegating to the service that owns it.
+     *
+     * @param productId the ID of the product or accessory
+     * @param amount the requested quantity
+     * @return true if there are enough units
+     */
+    private boolean hasEnoughStock(String productId, int amount) {
+        if (findRegularProduct(productId) != null) {
+            return productService.hasEnoughStock(productId, amount);
+        }
+        return accessoryService.hasEnoughStock(productId, amount);
+    }
+
+    /**
+     * Updates the stock of an item, delegating to the service that owns it.
+     *
+     * @param productId the ID of the product or accessory
+     * @param quantity units to add (positive) or remove (negative)
+     */
+    private void updateStock(String productId, int quantity) {
+        if (findRegularProduct(productId) != null) {
+            productService.updateStock(productId, quantity);
+        } else {
+            accessoryService.updateStock(productId, quantity);
+        }
     }
 }
