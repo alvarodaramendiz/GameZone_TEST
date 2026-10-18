@@ -1,15 +1,14 @@
 package com.gamezone.service;
 
-import com.gamezone.model.Console;
 import com.gamezone.model.Customer;
 import com.gamezone.model.Product;
+import com.gamezone.model.Promotion;
 import com.gamezone.model.Sale;
 import com.gamezone.model.Seller;
 import com.gamezone.persistence.SalePersistence;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -22,35 +21,41 @@ public class SaleService {
 
     private final SalePersistence repository;
     private final ProductService productService;
+    private final AccessoryService accessoryService;
+    private final PromotionService promotionService;
     private final SellerService sellerService;
     private final CustomerService customerService;
-    private final WarrantyService warrantyService;
     private final List<Sale> sales;
 
     /**
      * Creates a new service backed by the given repository and collaborating
      * services, loading the current sales history into memory.
      *
-     * @param repository      the repository used to persist and load sales
-     * @param productService  the service used to resolve and update products
-     * @param sellerService   the service used to resolve sellers
+     * @param repository the repository used to persist and load sales
+     * @param productService the service used to resolve and update products
+     * @param accessoryService the service used to resolve and update accessories
+     * @param promotionService the service used to find the best active promotion
+     * @param sellerService the service used to resolve sellers
      * @param customerService the service used to resolve customers
-     * @param warrantyService the service used to resolve warranties
      */
     public SaleService(SalePersistence repository, ProductService productService,
-            SellerService sellerService, CustomerService customerService, WarrantyService warrantyService) {
+            AccessoryService accessoryService, PromotionService promotionService,
+            SellerService sellerService, CustomerService customerService) {
         this.repository = repository;
         this.productService = productService;
+        this.accessoryService = accessoryService;
+        this.promotionService = promotionService;
         this.sellerService = sellerService;
         this.customerService = customerService;
         this.sales = new ArrayList<>(repository.loadAll());
-        this.warrantyService = warrantyService;
     }
 
     /**
      * Registers a new sale after validating that it contains at least one
-     * product, that the customer, seller, and products exist, and that
-     * enough stock is available for every requested product. Records the
+     * item, that the customer, seller, and items (products or accessories)
+     * exist, and that enough stock is available for every requested item.
+     * Applies the active promotion with the highest discount, discounts the
+     * sold units from the corresponding inventory, records the
      * sale and persists the updated sales history.
      *
      * AmountOfProduct is a non-static inner class of Sale, so it can't be
@@ -58,15 +63,16 @@ public class SaleService {
      * empty track, then its AmountOfProduct entries are built from that
      * instance.
      *
-     * @param customerId        the id of the customer making the purchase
-     * @param employeeCode      the employee code of the seller handling the sale
-     * @param productQuantities map of productId to quantity being sold
+     * @param customerId the id of the customer making the purchase
+     * @param employeeCode the employee code of the seller handling the sale
+     * @param productQuantities map of product or accessory id to quantity being sold
      * @return the registered sale
-     * @throws IllegalArgumentException if the product map is empty, if the
-     *                                  customer, seller, or a product cannot
-     *                                  be found, or if stock is insufficient
+     * @throws IllegalArgumentException if the map is empty, if the customer,
+     *                                  seller, or an item cannot be found, if a
+     *                                  quantity is not positive, or if stock is
+     *                                  insufficient
      */
-    public Sale registerSale(long customerId, long employeeCode, Map<String, Integer> productQuantities, List<String> productIdsWithExtendedWarranty) {
+    public Sale registerSale(long customerId, long employeeCode, Map<String, Integer> productQuantities) {
         if (productQuantities == null || productQuantities.isEmpty()) {
             throw new IllegalArgumentException("La venta debe contener al menos un producto.");
         }
@@ -75,6 +81,7 @@ public class SaleService {
         if (customer == null) {
             throw new IllegalArgumentException("Cliente no encontrado: " + customerId);
         }
+
         Seller seller = sellerService.searchSeller(employeeCode);
         if (seller == null) {
             throw new IllegalArgumentException("Vendedor no encontrado: " + employeeCode);
@@ -83,41 +90,56 @@ public class SaleService {
         for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
             String productId = entry.getKey();
             int amount = entry.getValue();
-            if (amount <= 0) {
-                throw new IllegalArgumentException(
-                    "Cantidad inválida de producto, introdujo: " + amount);
-            }
+
             Product product = findProduct(productId);
             if (product == null) {
                 throw new IllegalArgumentException("Producto no encontrado: " + productId);
             }
-            if (!productService.hasEnoughStock(productId, amount)) {
+            if (amount <= 0) {
+                throw new IllegalArgumentException(
+                    "La cantidad debe ser mayor que cero para el producto: " + product.getTitle());
+            }
+            if (!hasEnoughStock(productId, amount)) {
                 throw new IllegalArgumentException(
                     "Stock insuficiente para el producto: " + product.getTitle());
             }
         }
 
         long uId = System.currentTimeMillis();
-        Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer);
-        ArrayList<Sale.AmountOfProduct> pA = buildProductTrack(sale, productQuantities);
-        sale.setProductTrack(pA);
+        Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer, "", 0);
+        sale.setProductTrack(buildProductTrack(sale, productQuantities));
+        applyBestPromotion(sale);
+
+        // Every item was validated above, so discounting the stock cannot fail midway
+        for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
+            updateStock(entry.getKey(), -entry.getValue());
+        }
 
         sales.add(sale);
         repository.saveAll(sales);
-
-        // Consoles always get a basic warranty; the extended one is added on request.
-        for (Sale.AmountOfProduct item : pA) {
-            Product product = item.getSoldProduct();
-            if (product instanceof Console) {
-                warrantyService.assignBasicWarranty(product, sale, sale.getDate());
-                if (productIdsWithExtendedWarranty != null
-                        && productIdsWithExtendedWarranty.contains(product.getProductId())) {
-                    warrantyService.assignExtendedWarranty(product, sale, sale.getDate());
-                }
-            }
-        }
-
         return sale;
+    }
+    
+    /**
+     * Applies to the sale the active promotion that gives the highest
+     * discount, calculated only over the subtotal of the items, and sets the
+     * final total (subtotal minus discount). If no promotion applies, the
+     * total is the subtotal.
+     *
+     * @param sale the sale whose items are already loaded
+     */
+    private void applyBestPromotion(Sale sale) {
+        double subtotal = sale.getSubtotal();
+        Promotion best = promotionService.findBestPromotionFor(sale);
+        if (best != null) {
+            double discount = Math.min(best.calculateDiscount(sale), subtotal);
+            sale.setAppliedPromotionName(best.getName());
+            sale.setDiscountAmount(discount);
+        } else {
+            sale.setAppliedPromotionName("");
+            sale.setDiscountAmount(0);
+        }
+        sale.setTotalValue(subtotal - sale.getDiscountAmount());
     }
 
     /**
@@ -180,13 +202,29 @@ public class SaleService {
     }
 
     /**
-     * Looks up a product by its ID using {@link ProductService#listProducts()},
-     * since {@code ProductService} does not expose a direct search method.
+     * Looks up a sellable item by its ID: first among the regular products
+     * (video games and consoles), then among the accessories.
+     *
+     * @param productId the ID of the product or accessory to find
+     * @return the matching item, or {@code null} if none is found
+     */
+    private Product findProduct(String productId) {
+        Product product = findRegularProduct(productId);
+        if (product != null) {
+            return product;
+        }
+        return accessoryService.findById(productId);
+    }
+
+    /**
+     * Looks up a regular product (video game or console) using
+     * {@link ProductService#listProducts()}, since {@code ProductService}
+     * does not expose a direct search method.
      *
      * @param productId the ID of the product to find
      * @return the matching product, or {@code null} if none is found
      */
-    private Product findProduct(String productId) {
+    private Product findRegularProduct(String productId) {
         for (Product product : productService.listProducts()) {
             if (product.getProductId().equals(productId)) {
                 return product;
@@ -194,30 +232,32 @@ public class SaleService {
         }
         return null;
     }
-    
-        /**
-     * Returns the sale total including the additional cost of its extended warranties.
+
+    /**
+     * Checks the stock of an item, delegating to the service that owns it.
      *
-     * @param sale the sale to total
-     * @return the products value plus the warranty cost
+     * @param productId the ID of the product or accessory
+     * @param amount the requested quantity
+     * @return true if there are enough units
      */
-    public double getSaleTotal(Sale sale) {
-        return sale.saleTotalValue() + warrantyService.calculateAdditionalCost(sale);
+    private boolean hasEnoughStock(String productId, int amount) {
+        if (findRegularProduct(productId) != null) {
+            return productService.hasEnoughStock(productId, amount);
+        }
+        return accessoryService.hasEnoughStock(productId, amount);
     }
 
     /**
-     * Filters the given product ids, keeping only those that are consoles.
+     * Updates the stock of an item, delegating to the service that owns it.
      *
-     * @param productIds identifiers of the products to check (e.g. the cart)
-     * @return the ids of the products that are consoles
+     * @param productId the ID of the product or accessory
+     * @param quantity units to add (positive) or remove (negative)
      */
-    public List<String> findConsoleIds(Collection<String> productIds) {
-        List<String> result = new ArrayList<>();
-        for (String productId : productIds) {
-            if (findProduct(productId) instanceof Console) {
-                result.add(productId);
-            }
+    private void updateStock(String productId, int quantity) {
+        if (findRegularProduct(productId) != null) {
+            productService.updateStock(productId, quantity);
+        } else {
+            accessoryService.updateStock(productId, quantity);
         }
-        return result;
     }
 }

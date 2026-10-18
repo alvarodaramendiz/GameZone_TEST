@@ -10,8 +10,10 @@ import com.gamezone.service.SaleService;
 import com.gamezone.service.SellerService;
 //import com.gamezone.service.ReturnService;
 
-import com.gamezone.service.WarrantyService;
-import com.gamezone.persistence.WarrantyRepository;
+import com.gamezone.service.AccessoryService;
+import com.gamezone.persistence.AccessoryRepository;
+import com.gamezone.service.PromotionService;
+import com.gamezone.persistence.PromotionRepository;
 
 import java.awt.*;
 import javax.swing.*;
@@ -23,7 +25,7 @@ import javax.swing.*;
  * Contains a sidebar menu and a central panel that switches
  * between views using CardLayout.
  *
- * @author jahdiel
+ * @author alvaro
  */
 public class MainFrame extends JFrame {
 
@@ -35,24 +37,24 @@ public class MainFrame extends JFrame {
     private JButton btnProducts;
     private JButton btnPeople;
     private JButton btnSales;
-    private JButton btnWarranties;
+    private JButton btnAccesories;
+    private JButton btnPromotions;
     private JButton btnExit;
     
+    private final AccessoryRepository accessoryRepository = new AccessoryRepository();
     
     private final CustomerService customerService = new CustomerService();
     private final SellerService sellerService = new SellerService();
     private final ProductService productService = new ProductService();
-    private final SalePersistence salePersistence = new SalePersistence(productService, sellerService, customerService);
     
-    private final WarrantyRepository warrantyRepository = new WarrantyRepository(salePersistence, productService);
-    private final WarrantyService warrantyService = new WarrantyService(warrantyRepository);
-
-    private final SaleService saleService = new SaleService(salePersistence, productService, sellerService, customerService, warrantyService);
-
-//    private ReturnPersistence returnPersistence = new ReturnPersistence(saleService, productService);
-//    private ReturnService returnService = new ReturnService(returnPersistence, saleService, productService);
+    private final AccessoryService accessoryService = new AccessoryService(accessoryRepository);
+    private final PromotionRepository promotionRepository = new PromotionRepository();
+    private final PromotionService promotionService = new PromotionService(promotionRepository);
+    private final SalePersistence salePersistence = new SalePersistence(productService, accessoryService, sellerService, customerService);
     
 
+
+    private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, sellerService, customerService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -77,15 +79,17 @@ public class MainFrame extends JFrame {
         btnPeople = createMenuButton("Personas");
         btnSales = createMenuButton("Ventas");
         btnExit = createMenuButton("Salir");
-        btnWarranties = createMenuButton("Garantías");
+        btnAccesories = createMenuButton("Accesorios");
+        btnPromotions = createMenuButton("Promociones");
 
         sidebar.add(btnHome);
         sidebar.add(btnProducts);
         sidebar.add(btnPeople);
         sidebar.add(btnSales);
-        sidebar.add(btnWarranties);
         sidebar.add(new JLabel());
         sidebar.add(btnExit);
+        sidebar.add(btnAccesories);
+        sidebar.add(btnPromotions);
 
         // Center panel with CardLayout
         cardLayout = new CardLayout();
@@ -93,24 +97,24 @@ public class MainFrame extends JFrame {
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
         centerPanel.add(new ProductPanel(productService), "products");
-        centerPanel.add(new SalePanel(), "sales");
+        centerPanel.add(new SalePanel(saleService, accessoryService), "sales");
         centerPanel.add(new PersonPanel(), "people");
-        // TODO: cuando existan, agregar:
-        // centerPanel.add(new PersonPanel(), "people");
-        // centerPanel.add(new SalePanel(), "sales");
-        centerPanel.add(new WarrantyPanel(warrantyService, saleService), "warranties");
+        centerPanel.add(new AccessoryPanel(accessoryService), "accesories");
+        centerPanel.add(new PromotionPanel(promotionService), "promotions");
+        
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
         btnProducts.addActionListener(e -> cardLayout.show(centerPanel, "products"));
         btnPeople.addActionListener(e -> cardLayout.show(centerPanel, "people"));
         btnSales.addActionListener(e -> cardLayout.show(centerPanel, "sales"));
-        btnWarranties.addActionListener(e -> cardLayout.show(centerPanel, "warranties"));
+        btnAccesories.addActionListener(e -> cardLayout.show(centerPanel, "accesories"));
+        btnPromotions.addActionListener(e -> cardLayout.show(centerPanel, "promotions"));
         btnExit.addActionListener(e -> System.exit(0));
 
         add(sidebar, BorderLayout.WEST);
         add(centerPanel, BorderLayout.CENTER);
     }
-    
+
     private JButton createMenuButton(String text) {
         JButton button = new JButton(text);
         button.setForeground(Color.WHITE);
