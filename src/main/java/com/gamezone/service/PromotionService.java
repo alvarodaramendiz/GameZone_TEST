@@ -63,7 +63,7 @@ public class PromotionService {
      * @param startDate      first day the promotion is active
      * @param endDate        last day the promotion is active
      * @param percentage     discount percentage, greater than 0 and up to 100
-     * @param targetCategory category that receives the discount: "VIDEOGAME" or "CONSOLE"
+     * @param targetCategory category that receives the discount: "VIDEOGAME", "CONSOLE" or "ACCESSORY"
      * @return the registered promotion
      * @throws IllegalArgumentException if any value is not valid
      */
@@ -72,9 +72,9 @@ public class PromotionService {
         validateCommonData(promotionId, name, startDate, endDate);
         validatePercentage(percentage);
         String category = targetCategory == null ? "" : targetCategory.trim().toUpperCase();
-        if (!category.equals("VIDEOGAME") && !category.equals("CONSOLE")) {
+        if (!category.equals("VIDEOGAME") && !category.equals("CONSOLE") && !category.equals("ACCESSORY")) {
             throw new IllegalArgumentException("Categoría inválida: " + targetCategory
-                + ". Use VIDEOGAME o CONSOLE.");
+                + ". Use VIDEOGAME, CONSOLE o ACCESSORY.");
         }
         CategoryDiscount promotion = new CategoryDiscount(promotionId, name, startDate, endDate,
             percentage, category);
