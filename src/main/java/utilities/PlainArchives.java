@@ -10,6 +10,7 @@ package utilities;
 
 public class PlainArchives {
     public static final String PURCHASES = "data/purchases.txt";
+    public static final String PROMOTIONS = "data/promotions.csv";
     public static final String SALES   = "data/sales.txt";
     public static final String SELLERS = "data/sellers.txt";
     public static final String CUSTOMERS = "data/customers.txt";

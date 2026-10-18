@@ -2,6 +2,7 @@ package com.gamezone.service;
 
 import com.gamezone.model.Customer;
 import com.gamezone.model.Product;
+import com.gamezone.model.Promotion;
 import com.gamezone.model.Sale;
 import com.gamezone.model.Seller;
 import com.gamezone.persistence.SalePersistence;
@@ -21,6 +22,7 @@ public class SaleService {
     private final SalePersistence repository;
     private final ProductService productService;
     private final AccessoryService accessoryService;
+    private final PromotionService promotionService;
     private final SellerService sellerService;
     private final CustomerService customerService;
     private final List<Sale> sales;
@@ -32,15 +34,17 @@ public class SaleService {
      * @param repository the repository used to persist and load sales
      * @param productService the service used to resolve and update products
      * @param accessoryService the service used to resolve and update accessories
+     * @param promotionService the service used to find the best active promotion
      * @param sellerService the service used to resolve sellers
      * @param customerService the service used to resolve customers
      */
     public SaleService(SalePersistence repository, ProductService productService,
-            AccessoryService accessoryService, SellerService sellerService,
-            CustomerService customerService) {
+            AccessoryService accessoryService, PromotionService promotionService,
+            SellerService sellerService, CustomerService customerService) {
         this.repository = repository;
         this.productService = productService;
         this.accessoryService = accessoryService;
+        this.promotionService = promotionService;
         this.sellerService = sellerService;
         this.customerService = customerService;
         this.sales = new ArrayList<>(repository.loadAll());
@@ -50,7 +54,8 @@ public class SaleService {
      * Registers a new sale after validating that it contains at least one
      * item, that the customer, seller, and items (products or accessories)
      * exist, and that enough stock is available for every requested item.
-     * Discounts the sold units from the corresponding inventory, records the
+     * Applies the active promotion with the highest discount, discounts the
+     * sold units from the corresponding inventory, records the
      * sale and persists the updated sales history.
      *
      * AmountOfProduct is a non-static inner class of Sale, so it can't be
@@ -101,8 +106,9 @@ public class SaleService {
         }
 
         long uId = System.currentTimeMillis();
-        Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer);
+        Sale sale = new Sale(uId, LocalDate.now(), new ArrayList<>(), seller, customer, "", 0);
         sale.setProductTrack(buildProductTrack(sale, productQuantities));
+        applyBestPromotion(sale);
 
         // Every item was validated above, so discounting the stock cannot fail midway
         for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
@@ -112,6 +118,28 @@ public class SaleService {
         sales.add(sale);
         repository.saveAll(sales);
         return sale;
+    }
+    
+    /**
+     * Applies to the sale the active promotion that gives the highest
+     * discount, calculated only over the subtotal of the items, and sets the
+     * final total (subtotal minus discount). If no promotion applies, the
+     * total is the subtotal.
+     *
+     * @param sale the sale whose items are already loaded
+     */
+    private void applyBestPromotion(Sale sale) {
+        double subtotal = sale.getSubtotal();
+        Promotion best = promotionService.findBestPromotionFor(sale);
+        if (best != null) {
+            double discount = Math.min(best.calculateDiscount(sale), subtotal);
+            sale.setAppliedPromotionName(best.getName());
+            sale.setDiscountAmount(discount);
+        } else {
+            sale.setAppliedPromotionName("");
+            sale.setDiscountAmount(0);
+        }
+        sale.setTotalValue(subtotal - sale.getDiscountAmount());
     }
 
     /**

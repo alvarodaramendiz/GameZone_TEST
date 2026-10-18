@@ -3,12 +3,9 @@ package com.gamezone.ui;
 import com.gamezone.model.Accessory;
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
-import com.gamezone.persistence.SalePersistence;
 import com.gamezone.service.AccessoryService;
-import com.gamezone.service.CustomerService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
-import com.gamezone.service.SellerService;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,11 +23,8 @@ import javax.swing.table.DefaultTableModel;
 public class SalePanel extends JPanel {
 
     private ProductService productService = new ProductService();
-    private SellerService sellerService = new SellerService();
-    private CustomerService customerService = new CustomerService();
 
     private final AccessoryService accessoryService;
-    private final SalePersistence salePersistence;
     private final SaleService saleService;
 
     private JTextField txtCustomerId, txtEmployeeCode;
@@ -48,15 +42,13 @@ public class SalePanel extends JPanel {
     /**
      * Creates the sales panel.
      *
+     * @param saleService      the shared sale service created in MainFrame
      * @param accessoryService the shared accessory service (the same instance
      *                         used by the accessories panel)
      */
-    public SalePanel(AccessoryService accessoryService) {
+    public SalePanel(SaleService saleService, AccessoryService accessoryService) {
+        this.saleService = saleService;
         this.accessoryService = accessoryService;
-        this.salePersistence = new SalePersistence(productService, accessoryService,
-                sellerService, customerService);
-        this.saleService = new SaleService(salePersistence, productService,
-                accessoryService, sellerService, customerService);
 
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
@@ -215,8 +207,7 @@ public class SalePanel extends JPanel {
             long employeeCode = Long.parseLong(txtEmployeeCode.getText());
 
             Sale sale = saleService.registerSale(customerId, employeeCode, cart);
-            JOptionPane.showMessageDialog(this, "Venta registrada. Total: " + sale.saleTotalValue());
-
+            JOptionPane.showMessageDialog(this, new JTextArea(sale.receiptGen()), "Venta registrada", JOptionPane.INFORMATION_MESSAGE);
             cart.clear();
             refreshCartTable();
             refreshSalesTable();
@@ -234,8 +225,8 @@ public class SalePanel extends JPanel {
         List<Sale> sales = saleService.viewAllSales();
         for (Sale s : sales) {
             salesTableModel.addRow(new Object[]{
-                s.getuId(), s.getDate(), s.getCustomer().getName(),
-                s.getSeller().getName(), s.saleTotalValue()
+                    s.getuId(), s.getDate(), s.getCustomer().getName(),
+                    s.getSeller().getName(), s.getTotalValue()
             });
         }
     }

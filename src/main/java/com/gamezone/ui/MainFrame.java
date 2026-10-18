@@ -12,6 +12,8 @@ import com.gamezone.service.SellerService;
 
 import com.gamezone.service.AccessoryService;
 import com.gamezone.persistence.AccessoryRepository;
+import com.gamezone.service.PromotionService;
+import com.gamezone.persistence.PromotionRepository;
 
 import java.awt.*;
 import javax.swing.*;
@@ -36,6 +38,7 @@ public class MainFrame extends JFrame {
     private JButton btnPeople;
     private JButton btnSales;
     private JButton btnAccesories;
+    private JButton btnPromotions;
     private JButton btnExit;
     
     private final AccessoryRepository accessoryRepository = new AccessoryRepository();
@@ -45,11 +48,13 @@ public class MainFrame extends JFrame {
     private final ProductService productService = new ProductService();
     
     private final AccessoryService accessoryService = new AccessoryService(accessoryRepository);
+    private final PromotionRepository promotionRepository = new PromotionRepository();
+    private final PromotionService promotionService = new PromotionService(promotionRepository);
     private final SalePersistence salePersistence = new SalePersistence(productService, accessoryService, sellerService, customerService);
     
 
 
-    private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, sellerService, customerService);
+    private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, sellerService, customerService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -75,6 +80,7 @@ public class MainFrame extends JFrame {
         btnSales = createMenuButton("Ventas");
         btnExit = createMenuButton("Salir");
         btnAccesories = createMenuButton("Accesorios");
+        btnPromotions = createMenuButton("Promociones");
 
         sidebar.add(btnHome);
         sidebar.add(btnProducts);
@@ -83,6 +89,7 @@ public class MainFrame extends JFrame {
         sidebar.add(new JLabel());
         sidebar.add(btnExit);
         sidebar.add(btnAccesories);
+        sidebar.add(btnPromotions);
 
         // Center panel with CardLayout
         cardLayout = new CardLayout();
@@ -90,9 +97,10 @@ public class MainFrame extends JFrame {
 
         centerPanel.add(new JLabel("Bienvenido a GameZone Unicesar", SwingConstants.CENTER), "home");
         centerPanel.add(new ProductPanel(productService), "products");
-        centerPanel.add(new SalePanel(accessoryService), "sales");
+        centerPanel.add(new SalePanel(saleService, accessoryService), "sales");
         centerPanel.add(new PersonPanel(), "people");
         centerPanel.add(new AccessoryPanel(accessoryService), "accesories");
+        centerPanel.add(new PromotionPanel(promotionService), "promotions");
         
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
@@ -100,6 +108,7 @@ public class MainFrame extends JFrame {
         btnPeople.addActionListener(e -> cardLayout.show(centerPanel, "people"));
         btnSales.addActionListener(e -> cardLayout.show(centerPanel, "sales"));
         btnAccesories.addActionListener(e -> cardLayout.show(centerPanel, "accesories"));
+        btnPromotions.addActionListener(e -> cardLayout.show(centerPanel, "promotions"));
         btnExit.addActionListener(e -> System.exit(0));
 
         add(sidebar, BorderLayout.WEST);
