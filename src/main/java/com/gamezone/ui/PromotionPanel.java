@@ -65,7 +65,7 @@ public class PromotionPanel extends JPanel {
         txtMinQuantity = new JTextField();
 
         comboPromotions = new JComboBox<>(new String[]{TYPE_PERCENTAGE, TYPE_CATEGORY, TYPE_BULK});
-        comboCategory = new JComboBox<>(new String[]{"Consola", "Videojuego"});
+        comboCategory = new JComboBox<>(new String[]{"Consola", "Videojuego", "Accesorio"});
 
         lblCategory = new JLabel("Categoría:");
         lblMinQuantity = new JLabel("Cantidad mínima de productos:");
@@ -179,8 +179,11 @@ public class PromotionPanel extends JPanel {
                 case TYPE_PERCENTAGE ->
                     promotionService.registerPercentageDiscount(id, name, startDate, endDate, percentage);
                 case TYPE_CATEGORY -> {
-                    String targetCategory = comboCategory.getSelectedItem().equals("Consola")
-                            ? "CONSOLE" : "VIDEOGAME";
+                    String targetCategory = switch (String.valueOf(comboCategory.getSelectedItem())) {
+                        case "Consola" -> "CONSOLE";
+                        case "Accesorio" -> "ACCESSORY";
+                        default -> "VIDEOGAME";
+                    };
                     promotionService.registerCategoryDiscount(id, name, startDate, endDate, percentage, targetCategory);
                 }
                 case TYPE_BULK -> {
