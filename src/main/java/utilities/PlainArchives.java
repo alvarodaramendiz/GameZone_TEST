@@ -14,6 +14,7 @@ public class PlainArchives {
     public static final String SALES   = "data/sales.txt";
     public static final String SELLERS = "data/sellers.txt";
     public static final String CUSTOMERS = "data/customers.txt";
+    public static final String WARRANTIES = "data/warranties.csv";
     public static final String VIDEOGAMES = "data/videogames.txt";
     public static final String CONSOLES = "data/consoles.txt";
     public static final String RETURNS = "data/returns.txt";
