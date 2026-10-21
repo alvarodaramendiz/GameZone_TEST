@@ -220,4 +220,5 @@ public final class Sale {
 
     return days >= 0 && days <= 30;
 }
+    
 }
