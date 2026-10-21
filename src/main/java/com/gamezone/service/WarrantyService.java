@@ -6,11 +6,15 @@ import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
 import com.gamezone.model.Warranty;
 import com.gamezone.service.WarrantyService;
+import com.gamezone.persistence.SalePersistence;
+import com.gamezone.persistence.WarrantyRecord;
 import com.gamezone.persistence.WarrantyRepository;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Provides the business operations of the warranty module: assignment of
@@ -28,16 +32,58 @@ public class WarrantyService {
     
     private WarrantyService warrantyService;
     private final WarrantyRepository repository;
+    private final SalePersistence saleRepository;
+    private final ProductService productService;
     private final List<Warranty> warranties;
 
     /**
-     * Creates the service and loads the stored warranties into memory.
+     * Creates the service and loads the stored warranties into memory,
+     * resolving the sale and the product of each one from their identifiers.
      *
-     * @param repository the repository used to persist and load warranties
+     * @param repository     the repository used to persist and load warranties
+     * @param saleRepository the repository used to resolve the sale of each warranty
+     * @param productService the service used to resolve the product of each warranty
      */
-    public WarrantyService(WarrantyRepository repository) {
+    public WarrantyService(WarrantyRepository repository, SalePersistence saleRepository,
+            ProductService productService) {
         this.repository = repository;
-        this.warranties = new ArrayList<>(repository.loadAll());
+        this.saleRepository = saleRepository;
+        this.productService = productService;
+        this.warranties = new ArrayList<>(resolveAll(repository.loadAll()));
+    }
+
+    /**
+     * Turns the stored records into warranties, looking up their sale and
+     * product. Records whose sale or product no longer exist are skipped.
+     *
+     * @param records the raw records read by the repository
+     * @return the resolved warranties
+     */
+    private List<Warranty> resolveAll(List<WarrantyRecord> records) {
+        Map<String, Sale> salesById = new HashMap<>();
+        for (Sale sale : saleRepository.loadAll()) {
+            salesById.put(String.valueOf(sale.getuId()), sale);
+        }
+        Map<String, Product> productsById = new HashMap<>();
+        for (Product product : productService.listProducts()) {
+            productsById.put(product.getProductId(), product);
+        }
+        List<Warranty> result = new ArrayList<>();
+        for (WarrantyRecord record : records) {
+            Sale sale = salesById.get(record.getSaleId());
+            Product product = productsById.get(record.getProductId());
+            if (sale == null || product == null) {
+                System.out.println("Aviso: garantía " + record.getWarrantyId()
+                    + " sin venta o producto asociado, se omite.");
+                continue;
+            }
+            if ("EXTENDED".equals(record.getType())) {
+                result.add(new ExtendedWarranty(record.getWarrantyId(), product, sale, record.getStartDate()));
+            } else {
+                result.add(new BasicWarranty(record.getWarrantyId(), product, sale, record.getStartDate()));
+            }
+        }
+        return result;
     }
 
     /**
