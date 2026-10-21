@@ -162,6 +162,19 @@ public final class Sale {
         }
         return subtotal;
     }
+    
+        /**
+     * Returns the cost of the extended warranties included in the sale. It is
+     * derived from the stored values (total = subtotal - discount + extended
+     * warranty cost), so it survives a reload from the sales file without
+     * adding a new persisted field.
+     *
+     * @return the extended warranty cost in pesos, never negative
+     */
+    public double getExtendedWarrantyCost() {
+        double cost = totalValue - getSubtotal() + discountAmount;
+        return Math.max(0, Math.round(cost * 100) / 100.0);
+    }
 
     /**
      * Builds the receipt of the sale in Spanish, showing the sold items, the
@@ -186,11 +199,13 @@ public final class Sale {
                     .append(" x ").append(e.getProductAmount()).append("\n");
         }
         saleReceipt.append("===================== VALOR TOTAL =====================\n");
-        saleReceipt.append("SUBTOTAL         : $").append(getSubtotal()).append("\n");
+        saleReceipt.append("SUBTOTAL            : $").append(getSubtotal()).append("\n");
         boolean hasPromotion = appliedPromotionName != null && !appliedPromotionName.isBlank();
-        saleReceipt.append("PROMOCIÓN        : ").append(hasPromotion ? appliedPromotionName : "Ninguna").append("\n");
-        saleReceipt.append("DESCUENTO        : $").append(discountAmount).append("\n");
-        saleReceipt.append("TOTAL A PAGAR    : $").append(totalValue).append("\n");
+        saleReceipt.append("DESCUENTO           : ")
+                .append(hasPromotion ? appliedPromotionName : "Ninguna")
+                .append(" (-$").append(discountAmount).append(")\n");
+        saleReceipt.append("GARANTÍA EXTENDIDA  : +$").append(getExtendedWarrantyCost()).append("\n");
+        saleReceipt.append("TOTAL A PAGAR       : $").append(totalValue).append("\n");
         return saleReceipt.toString();
     }
 
