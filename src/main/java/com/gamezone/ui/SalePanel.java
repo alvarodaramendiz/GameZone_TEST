@@ -247,6 +247,7 @@ public class SalePanel extends JPanel {
         }
         return extended;
     }
+    
 
     private void refreshSalesTable() {
         salesTableModel.setRowCount(0);
