@@ -14,6 +14,8 @@ import com.gamezone.service.AccessoryService;
 import com.gamezone.persistence.AccessoryRepository;
 import com.gamezone.service.PromotionService;
 import com.gamezone.persistence.PromotionRepository;
+import com.gamezone.service.WarrantyService;
+import com.gamezone.persistence.WarrantyRepository;
 
 import java.awt.*;
 import javax.swing.*;
@@ -39,6 +41,7 @@ public class MainFrame extends JFrame {
     private JButton btnSales;
     private JButton btnAccesories;
     private JButton btnPromotions;
+    private JButton btnWarranties;
     private JButton btnExit;
     
     private final AccessoryRepository accessoryRepository = new AccessoryRepository();
@@ -54,6 +57,8 @@ public class MainFrame extends JFrame {
     
 
 
+    private final WarrantyRepository warrantyRepository = new WarrantyRepository();
+    private final WarrantyService warrantyService = new WarrantyService(warrantyRepository, salePersistence, productService);
     private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, sellerService, customerService);
 
     public MainFrame() {
@@ -81,11 +86,13 @@ public class MainFrame extends JFrame {
         btnExit = createMenuButton("Salir");
         btnAccesories = createMenuButton("Accesorios");
         btnPromotions = createMenuButton("Promociones");
+        btnWarranties = createMenuButton("Garantías");
 
         sidebar.add(btnHome);
         sidebar.add(btnProducts);
         sidebar.add(btnPeople);
         sidebar.add(btnSales);
+        sidebar.add(btnWarranties);
         sidebar.add(new JLabel());
         sidebar.add(btnExit);
         sidebar.add(btnAccesories);
@@ -101,6 +108,7 @@ public class MainFrame extends JFrame {
         centerPanel.add(new PersonPanel(), "people");
         centerPanel.add(new AccessoryPanel(accessoryService), "accesories");
         centerPanel.add(new PromotionPanel(promotionService), "promotions");
+        centerPanel.add(new WarrantyPanel(warrantyService, saleService), "warranties");
         
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
@@ -109,6 +117,7 @@ public class MainFrame extends JFrame {
         btnSales.addActionListener(e -> cardLayout.show(centerPanel, "sales"));
         btnAccesories.addActionListener(e -> cardLayout.show(centerPanel, "accesories"));
         btnPromotions.addActionListener(e -> cardLayout.show(centerPanel, "promotions"));
+        btnWarranties.addActionListener(e -> cardLayout.show(centerPanel, "warranties"));
         btnExit.addActionListener(e -> System.exit(0));
 
         add(sidebar, BorderLayout.WEST);
