@@ -68,6 +68,7 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         initComponents();
     }
+    
 
     private void initComponents() {
         setLayout(new BorderLayout());
