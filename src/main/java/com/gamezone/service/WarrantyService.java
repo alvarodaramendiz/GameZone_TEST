@@ -30,7 +30,6 @@ public class WarrantyService {
     private static final String EXTENDED_SUFFIX = "E";
     public static final int EXPIRING_SOON_DAYS = 30;
     
-    private WarrantyService warrantyService;
     private final WarrantyRepository repository;
     private final SalePersistence saleRepository;
     private final ProductService productService;
