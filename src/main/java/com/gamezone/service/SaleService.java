@@ -322,6 +322,7 @@ public class SaleService {
         }
         return null;
     }
+    
 
     /**
      * Checks the stock of an item, delegating to the service that owns it.
