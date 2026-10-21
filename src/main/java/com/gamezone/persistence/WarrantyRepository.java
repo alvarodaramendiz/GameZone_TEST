@@ -1,11 +1,7 @@
 package com.gamezone.persistence;
 
-import com.gamezone.model.BasicWarranty;
 import com.gamezone.model.ExtendedWarranty;
-import com.gamezone.model.Product;
-import com.gamezone.model.Sale;
 import com.gamezone.model.Warranty;
-import com.gamezone.service.ProductService;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,9 +11,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import utilities.PlainArchives;
 
 /**
@@ -30,9 +24,9 @@ import utilities.PlainArchives;
  * EXTENDED|warrantyId|saleId|productId|startDate
  * </pre>
  * The end date is not stored because each warranty calculates it from its
- * start date and its duration. The sale and the product are stored by their
- * identifiers and resolved again when the file is loaded, using the injected
- * sale persistence and product service.
+ * start date and its duration. Only the identifiers of the sale and the
+ * product are stored and loaded; resolving them into objects is the job of
+ * WarrantyService, so this class does not depend on any service.
  *
  * @author jahdiel
  */
@@ -44,30 +38,21 @@ public class WarrantyRepository {
     private static final String EXTENDED_TYPE = "EXTENDED";
 
     private final String filePath;
-    private final SalePersistence salePersistence;
-    private final ProductService productService;
 
     /**
      * Creates a repository that works with the default warranties file.
-     *
-     * @param salePersistence used to resolve the sale of each warranty when loading
-     * @param productService  used to resolve the product of each warranty when loading
      */
-    public WarrantyRepository(SalePersistence salePersistence, ProductService productService) {
-        this(PlainArchives.WARRANTIES, salePersistence, productService);
+    public WarrantyRepository() {
+        this(PlainArchives.WARRANTIES);
     }
 
     /**
      * Creates a repository that works with the given file.
      *
-     * @param filePath        path of the file where the warranties are stored
-     * @param salePersistence used to resolve the sale of each warranty when loading
-     * @param productService  used to resolve the product of each warranty when loading
+     * @param filePath path of the file where the warranties are stored
      */
-    public WarrantyRepository(String filePath, SalePersistence salePersistence, ProductService productService) {
+    public WarrantyRepository(String filePath) {
         this.filePath = filePath;
-        this.salePersistence = salePersistence;
-        this.productService = productService;
     }
 
     /**
@@ -92,24 +77,16 @@ public class WarrantyRepository {
     }
 
     /**
-     * Reads every warranty stored in the file and resolves its sale and product.
-     * Lines whose sale or product no longer exist are skipped.
+     * Reads every warranty stored in the file as raw records with the
+     * identifiers of its sale and product.
      *
-     * @return the list of warranties, or an empty list if the file does not exist
+     * @return the list of records, or an empty list if the file does not exist
      */
-    public List<Warranty> loadAll() {
-        List<Warranty> warranties = new ArrayList<>();
+    public List<WarrantyRecord> loadAll() {
+        List<WarrantyRecord> records = new ArrayList<>();
         File file = new File(filePath);
         if (!file.exists()) {
-            return warranties;
-        }
-        Map<String, Sale> salesById = new HashMap<>();
-        for (Sale sale : salePersistence.loadAll()) {
-            salesById.put(String.valueOf(sale.getuId()), sale);
-        }
-        Map<String, Product> productsById = new HashMap<>();
-        for (Product product : productService.listProducts()) {
-            productsById.put(product.getProductId(), product);
+            return records;
         }
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
@@ -117,15 +94,15 @@ public class WarrantyRepository {
                 if (line.trim().isEmpty()) {
                     continue;
                 }
-                Warranty warranty = fromLine(line, salesById, productsById);
-                if (warranty != null) {
-                    warranties.add(warranty);
+                WarrantyRecord record = fromLine(line);
+                if (record != null) {
+                    records.add(record);
                 }
             }
         } catch (IOException e) {
             System.out.println("Error: no se pudo leer el archivo de garantías.");
         }
-        return warranties;
+        return records;
     }
 
     /**
@@ -144,35 +121,19 @@ public class WarrantyRepository {
     }
 
     /**
-     * Rebuilds a warranty from a line of the file. The first field is the
-     * discriminator that decides which concrete class is created.
+     * Reads a line of the file into a record.
      *
-     * @param line         the text line to parse
-     * @param salesById    stored sales indexed by identifier
-     * @param productsById stored products indexed by identifier
-     * @return the rebuilt warranty, or null if the line is not valid or its
-     *         sale or product cannot be found
+     * @param line the text line to parse
+     * @return the record, or null if the line is not valid
      */
-    private Warranty fromLine(String line, Map<String, Sale> salesById, Map<String, Product> productsById) {
+    private WarrantyRecord fromLine(String line) {
         String[] fields = line.split("\\|", -1);
         try {
             String type = fields[0];
-            String warrantyId = fields[1];
-            Sale sale = salesById.get(fields[2]);
-            Product product = productsById.get(fields[3]);
-            LocalDate startDate = LocalDate.parse(fields[4]);
-            if (sale == null || product == null) {
-                System.out.println("Aviso: garantía " + warrantyId + " sin venta o producto asociado, se omite.");
+            if (!BASIC_TYPE.equals(type) && !EXTENDED_TYPE.equals(type)) {
                 return null;
             }
-            switch (type) {
-                case BASIC_TYPE:
-                    return new BasicWarranty(warrantyId, product, sale, startDate);
-                case EXTENDED_TYPE:
-                    return new ExtendedWarranty(warrantyId, product, sale, startDate);
-                default:
-                    return null;
-            }
+            return new WarrantyRecord(type, fields[1], fields[2], fields[3], LocalDate.parse(fields[4]));
         } catch (ArrayIndexOutOfBoundsException | DateTimeParseException e) {
             System.out.println("Error: línea de garantía inválida: " + line);
             return null;
