@@ -3,12 +3,15 @@ package com.gamezone.ui;
 import com.gamezone.model.Accessory;
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
+import com.gamezone.model.Console;
 import com.gamezone.service.AccessoryService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
 import java.awt.*;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.Map;
 import javax.swing.*;
 import javax.swing.event.PopupMenuEvent;
@@ -206,7 +209,8 @@ public class SalePanel extends JPanel {
             long customerId = Long.parseLong(txtCustomerId.getText());
             long employeeCode = Long.parseLong(txtEmployeeCode.getText());
 
-            Sale sale = saleService.registerSale(customerId, employeeCode, cart);
+            Set<String> extendedWarranties = askExtendedWarranties();
+            Sale sale = saleService.registerSale(customerId, employeeCode, cart, extendedWarranties);
             JOptionPane.showMessageDialog(this, new JTextArea(sale.receiptGen()), "Venta registrada", JOptionPane.INFORMATION_MESSAGE);
             cart.clear();
             refreshCartTable();
@@ -219,6 +223,31 @@ public class SalePanel extends JPanel {
             JOptionPane.showMessageDialog(this, e.getMessage());
         }
     }
+    
+        /**
+     * Asks, for every console in the cart, whether the customer wants an
+     * extended warranty.
+     *
+     * @return the ids of the consoles that get an extended warranty
+     */
+    private Set<String> askExtendedWarranties() {
+        Set<String> extended = new LinkedHashSet<>();
+        for (String itemId : cart.keySet()) {
+            for (Product product : productService.listProducts()) {
+                if (product instanceof Console && product.getProductId().equals(itemId)) {
+                    int answer = JOptionPane.showConfirmDialog(this,
+                            "¿Desea garantía extendida para " + product.getTitle() + "?\n"
+                            + "Su costo se sumará al total de la venta.",
+                            "Garantía extendida", JOptionPane.YES_NO_OPTION);
+                    if (answer == JOptionPane.YES_OPTION) {
+                        extended.add(itemId);
+                    }
+                }
+            }
+        }
+        return extended;
+    }
+    
 
     private void refreshSalesTable() {
         salesTableModel.setRowCount(0);

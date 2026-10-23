@@ -59,7 +59,7 @@ public class MainFrame extends JFrame {
 
     private final WarrantyRepository warrantyRepository = new WarrantyRepository();
     private final WarrantyService warrantyService = new WarrantyService(warrantyRepository, salePersistence, productService);
-    private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, sellerService, customerService);
+        private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, warrantyService, sellerService, customerService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -68,6 +68,7 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         initComponents();
     }
+    
 
     private void initComponents() {
         setLayout(new BorderLayout());

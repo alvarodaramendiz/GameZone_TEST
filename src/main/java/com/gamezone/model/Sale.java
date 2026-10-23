@@ -4,19 +4,38 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 
 /**
- * Dominio de venta que incorpora las transacciones de venta entre vendedor y cliente
+ * Domain class that represents a sale transaction between a seller and a
+ * customer. It keeps the sold items, the applied promotion, the discount and
+ * the final total of the sale.
+ *
  * @author ALVARO
  */
 public final class Sale {
-    
-    public class AmountOfProduct { // Clase que agrupa unidades y producto en una misma estructura
-        
-        private Product soldProduct; // Producto vendido
-        private int productAmount; // Unidades del producto vendido
 
+    /**
+     * Groups a sold product (or accessory) with the number of units sold.
+     * It is a non-static inner class, so it can only be created from an
+     * existing {@link Sale} instance.
+     */
+    public class AmountOfProduct {
+        
+        
+
+        private Product soldProduct; // Sold product or accessory
+        private int productAmount; // Units sold of the product
+        
+        /**
+         * Creates an empty item. Its product and amount must be set afterwards.
+         */
         public AmountOfProduct() {
         }
 
+        /**
+         * Creates an item with the given product and quantity.
+         *
+         * @param soldProduct the sold product or accessory
+         * @param productAmount the units sold
+         */
         public AmountOfProduct(Product soldProduct, int productAmount) {
             this.soldProduct = soldProduct;
             this.productAmount = productAmount;
@@ -26,6 +45,11 @@ public final class Sale {
             return soldProduct;
         }
 
+        /**
+         * Sets the sold product.
+         *
+         * @param soldProduct the sold product or accessory
+         */
         public void setSoldProduct(Product soldProduct) {
             this.soldProduct = soldProduct;
         }
@@ -34,6 +58,11 @@ public final class Sale {
             return productAmount;
         }
 
+        /**
+         * Sets the units sold of the product.
+         *
+         * @param productAmount the units sold
+         */
         public void setProductAmount(int productAmount) {
             this.productAmount = productAmount;
         }
@@ -41,17 +70,31 @@ public final class Sale {
         
     }
     
-    private long uId; // Identificador único de transacción
-    private LocalDate date; // Guardado de fecha local en formato año - mes - día
-    private ArrayList<AmountOfProduct> productTrack; // 
-    private Seller seller; // Vendedor que genera la venta
-    private Customer customer; // Consumidor o Cliente que realiza la compra
+    private long uId; // Unique transaction identifier
+    private LocalDate date; // Sale date (year-month-day)
+    private ArrayList<AmountOfProduct> productTrack; // Sold items with their quantities
+    private Seller seller; // Seller who handled the sale
+    private Customer customer; // Customer who made the purchase
     private String appliedPromotionName; // Name of the promotion applied to the sale
     private double discountAmount; // Discount granted by the applied promotion, in pesos
-    private double totalValue; // Valor total monetario de la venta
+    private double totalValue; // Final total of the sale, in pesos
     
-    // Constructores para inicialización parametrizada
+    // Constructors
     
+    // → sobre: public Sale(long uId, LocalDate date, ...)
+    /**
+     * Creates a new sale. The total value starts at zero and is set by the
+     * service once the discount and the warranties are calculated.
+     *
+     * @param uId the unique transaction identifier
+     * @param date the sale date
+     * @param productTrack the sold items with their quantities
+     * @param seller the seller who handled the sale
+     * @param customer the customer who made the purchase
+     * @param appliedPromotionName the name of the applied promotion, empty if
+     * none
+     * @param discountAmount the discount granted by the promotion, in pesos
+     */
     public Sale(long uId, LocalDate date, ArrayList<AmountOfProduct> productTrack, Seller seller, Customer customer, String appliedPromotionName, double discountAmount) {
         this.uId = uId;
         this.date = date;
@@ -63,7 +106,7 @@ public final class Sale {
         this.totalValue = 0;
     }
     
-    // Getters y setters para acceder a las variables de instancia
+    // Getters and setters
 
     public long getuId() {
         return uId;
@@ -162,6 +205,19 @@ public final class Sale {
         }
         return subtotal;
     }
+    
+        /**
+     * Returns the cost of the extended warranties included in the sale. It is
+     * derived from the stored values (total = subtotal - discount + extended
+     * warranty cost), so it survives a reload from the sales file without
+     * adding a new persisted field.
+     *
+     * @return the extended warranty cost in pesos, never negative
+     */
+    public double getExtendedWarrantyCost() {
+        double cost = totalValue - getSubtotal() + discountAmount;
+        return Math.max(0, Math.round(cost * 100) / 100.0);
+    }
 
     /**
      * Builds the receipt of the sale in Spanish, showing the sold items, the
@@ -186,11 +242,13 @@ public final class Sale {
                     .append(" x ").append(e.getProductAmount()).append("\n");
         }
         saleReceipt.append("===================== VALOR TOTAL =====================\n");
-        saleReceipt.append("SUBTOTAL         : $").append(getSubtotal()).append("\n");
+        saleReceipt.append("SUBTOTAL            : $").append(getSubtotal()).append("\n");
         boolean hasPromotion = appliedPromotionName != null && !appliedPromotionName.isBlank();
-        saleReceipt.append("PROMOCIÓN        : ").append(hasPromotion ? appliedPromotionName : "Ninguna").append("\n");
-        saleReceipt.append("DESCUENTO        : $").append(discountAmount).append("\n");
-        saleReceipt.append("TOTAL A PAGAR    : $").append(totalValue).append("\n");
+        saleReceipt.append("DESCUENTO           : ")
+                .append(hasPromotion ? appliedPromotionName : "Ninguna")
+                .append(" (-$").append(discountAmount).append(")\n");
+        saleReceipt.append("GARANTÍA EXTENDIDA  : +$").append(getExtendedWarrantyCost()).append("\n");
+        saleReceipt.append("TOTAL A PAGAR       : $").append(totalValue).append("\n");
         return saleReceipt.toString();
     }
 
@@ -205,4 +263,5 @@ public final class Sale {
 
     return days >= 0 && days <= 30;
 }
+    
 }
