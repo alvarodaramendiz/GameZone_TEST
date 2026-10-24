@@ -136,7 +136,7 @@ public class ReturnService {
         double totalSales = 0;
         for (Sale sale : saleService.viewAllSales()) {
             if (sale.getDate().getMonthValue() == month && sale.getDate().getYear() == year) {
-                totalSales += sale.saleTotalValue();
+                totalSales += sale.getTotalValue();
             }
         }
         double totalReturns = 0;
