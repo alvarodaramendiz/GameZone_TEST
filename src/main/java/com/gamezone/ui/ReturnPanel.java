@@ -130,7 +130,7 @@ public class ReturnPanel extends JPanel {
         formWrapper.add(form, BorderLayout.CENTER);
         formWrapper.add(btnSearch, BorderLayout.SOUTH);
         reportTableModel = new DefaultTableModel(
-                new String[]{"Mes", "Año", "Balance Neto Mensual"}, 0);
+                new String[]{"Mes", "Año", "Total Ventas", "Total Devoluciones", "Balance Neto Mensual"}, 0);
         reportTable = new JTable(reportTableModel);
         panel.add(formWrapper, BorderLayout.NORTH);
         panel.add(new JScrollPane(reportTable), BorderLayout.CENTER);
@@ -339,14 +339,19 @@ public class ReturnPanel extends JPanel {
         try {
             reportTableModel.setRowCount(0);
             YearMonth yearMonth = YearMonth.of(Integer.valueOf(year), Integer.valueOf(month));
-            double balance = 0;
-            balance = returnService.generateMonthlyBalance(Integer.valueOf(year), Integer.valueOf(month));
+            int monthValue = yearMonth.getMonthValue();
+            int yearValue = yearMonth.getYear();
+            double totalSales = returnService.calculateMonthlySales(monthValue, yearValue);
+            double totalReturns = returnService.calculateMonthlyReturns(monthValue, yearValue);
+            double balance = returnService.generateMonthlyBalance(monthValue, yearValue);
             reportTableModel.addRow(new Object[]{
                 yearMonth.getMonth().toString(),
-                yearMonth.getYear(),
+                yearValue,
+                totalSales,
+                totalReturns,
                 balance}
             );
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException | java.time.DateTimeException e) {
             JOptionPane.showMessageDialog(null, "Entrada inválida.", "Balance Mensual", 0);
         }
     }

@@ -131,6 +131,41 @@ public class ReturnService {
     }
 
     /**
+     * Calculates the total sales of a month, using the final total of each
+     * sale (with promotion discounts and extended warranties).
+     *
+     * @param month the month (1-12)
+     * @param year  the year
+     * @return the total sales of the period
+     */
+    public double calculateMonthlySales(int month, int year) {
+        double totalSales = 0;
+        for (Sale sale : saleService.viewAllSales()) {
+            if (sale.getDate().getMonthValue() == month && sale.getDate().getYear() == year) {
+                totalSales += sale.getTotalValue();
+            }
+        }
+        return totalSales;
+    }
+
+    /**
+     * Calculates the total refunded by returns made in a month.
+     *
+     * @param month the month (1-12)
+     * @param year  the year
+     * @return the total refunds of the period
+     */
+    public double calculateMonthlyReturns(int month, int year) {
+        double totalReturns = 0;
+        for (Return r : returns) {
+            if (r.getDate().getMonthValue() == month && r.getDate().getYear() == year) {
+                totalReturns += r.getReimbursedAmount();
+            }
+        }
+        return totalReturns;
+    }
+
+    /**
      * Calculates the net balance of a month: total sales minus total refunds.
      *
      * @param month the month (1-12)
@@ -138,19 +173,7 @@ public class ReturnService {
      * @return the net balance of the period
      */
     public double generateMonthlyBalance(int month, int year) {
-        double totalSales = 0;
-        for (Sale sale : saleService.viewAllSales()) {
-            if (sale.getDate().getMonthValue() == month && sale.getDate().getYear() == year) {
-                totalSales += sale.getTotalValue();
-            }
-        }
-        double totalReturns = 0;
-        for (Return r : returns) {
-            if (r.getDate().getMonthValue() == month && r.getDate().getYear() == year) {
-                totalReturns += r.getReimbursedAmount();
-            }
-        }
-        return totalSales - totalReturns;
+        return calculateMonthlySales(month, year) - calculateMonthlyReturns(month, year);
     }
 
     /**
