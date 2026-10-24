@@ -139,7 +139,7 @@ public class ProductService {
         if (p != null) {
             if (quantity>=1) {
                 p.setStock(p.getStock()+quantity);
-                // Conexión con ReturnService para persistir el cambio de stock
+                productDAO.updateProduct(p);
                 return "Producto restockeado.";
             } else {
                 return "Cantidad no válida. Intente de nuevo.";
