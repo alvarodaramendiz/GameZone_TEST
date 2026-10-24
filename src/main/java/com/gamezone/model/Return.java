@@ -18,6 +18,7 @@ public class Return {
     private List<Product> returnedProducts;
     private String returnReason;
     private double reimbursedAmount;
+    private double warrantyRefund;
 
     /**
      * Creates a new Return.
@@ -76,10 +77,25 @@ public class Return {
         return reimbursedAmount;
     }
 
+    /** @return the amount refunded for cancelled extended warranties */
+    public double getWarrantyRefund() {
+        return warrantyRefund;
+    }
+
+    /**
+     * Sets the amount refunded for the extended warranties cancelled by this return.
+     *
+     * @param warrantyRefund the warranty refund
+     */
+    public void setWarrantyRefund(double warrantyRefund) {
+        this.warrantyRefund = warrantyRefund;
+    }
+
     /**
      * Calculates the refund of the returned products. If the original sale
      * had a promotion, each product is refunded in proportion to the discount:
-     * price x (1 - discount / subtotal). Stores the result and returns it.
+     * price x (1 - discount / subtotal). The refund of cancelled extended
+     * warranties is added. Stores the result and returns it.
      *
      * @return the calculated refund amount
      */
@@ -88,6 +104,7 @@ public class Return {
         for (Product product : returnedProducts) {
             finalAmount += product.getPrice() * getPaidFactor();
         }
+        finalAmount += warrantyRefund;
         this.reimbursedAmount = finalAmount;
         return finalAmount;
     }
@@ -132,6 +149,7 @@ public class Return {
             receipt.append("  DESCUENTO       : $").append(String.format("%.2f", product.getPrice() - refund)).append("\n");
             receipt.append("  REEMBOLSO       : $").append(String.format("%.2f", refund)).append("\n");
         }
+        receipt.append("GARANTÍAS ANULADAS: $").append(String.format("%.2f", warrantyRefund)).append("\n");
         receipt.append("MOTIVO            : ").append(returnReason).append("\n");
         receipt.append("MONTO REEMBOLSADO : $").append(reimbursedAmount).append("\n");
         return receipt.toString();

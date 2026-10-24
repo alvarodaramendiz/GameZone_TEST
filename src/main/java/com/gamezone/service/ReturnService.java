@@ -1,6 +1,7 @@
 package com.gamezone.service;
 
 import com.gamezone.model.Accessory;
+import com.gamezone.model.Console;
 import com.gamezone.model.Product;
 import com.gamezone.model.Return;
 import com.gamezone.model.Sale;
@@ -22,6 +23,7 @@ public class ReturnService {
     private final SaleService saleService;
     private final ProductService productService;
     private final AccessoryService accessoryService;
+    private final WarrantyService warrantyService;
     private final List<Return> returns;
 
     /**
@@ -31,13 +33,16 @@ public class ReturnService {
      * @param saleService    the service used to look up sales
      * @param productService   the service used to restore the stock of products
      * @param accessoryService the service used to restore the stock of accessories
+     * @param warrantyService  the service used to cancel the warranties of returned consoles
      */
     public ReturnService(ReturnPersistence repository, SaleService saleService,
-            ProductService productService, AccessoryService accessoryService) {
+            ProductService productService, AccessoryService accessoryService,
+            WarrantyService warrantyService) {
         this.repository = repository;
         this.saleService = saleService;
         this.productService = productService;
         this.accessoryService = accessoryService;
+        this.warrantyService = warrantyService;
         this.returns = new ArrayList<>(repository.loadAll());
     }
 
@@ -78,6 +83,15 @@ public class ReturnService {
 
         String idReturn = String.valueOf(System.currentTimeMillis());
         Return newReturn = new Return(idReturn, LocalDate.now(), sale, returnedProducts, reason, 0);
+
+        // A returned console cannot keep an active warranty
+        double warrantyRefund = 0;
+        for (Product product : returnedProducts) {
+            if (product instanceof Console) {
+                warrantyRefund += warrantyService.cancelWarranties(product.getProductId(), String.valueOf(saleId));
+            }
+        }
+        newReturn.setWarrantyRefund(warrantyRefund);
         newReturn.calculateRefundAmount();
 
         for (Product product : returnedProducts) {

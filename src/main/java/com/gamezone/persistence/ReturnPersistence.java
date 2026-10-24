@@ -105,7 +105,8 @@ public class ReturnPersistence {
                 String.valueOf(r.getSale().getuId()),
                 productIds.toString(),
                 r.getReturnReason().replace(FIELD_SEPARATOR, ","),
-                String.valueOf(r.getReimbursedAmount()));
+                String.valueOf(r.getReimbursedAmount()),
+                String.valueOf(r.getWarrantyRefund()));
     }
 
     private Return fromLine(String line) {
@@ -128,7 +129,11 @@ public class ReturnPersistence {
             }
             products.add(product);
         }
-        return new Return(idReturn, date, sale, products, reason, amount);
+        Return loaded = new Return(idReturn, date, sale, products, reason, amount);
+        if (fields.length > 6 && !fields[6].isBlank()) {
+            loaded.setWarrantyRefund(Double.parseDouble(fields[6]));
+        }
+        return loaded;
     }
 
     private Sale findSale(long saleId) {
