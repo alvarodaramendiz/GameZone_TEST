@@ -77,18 +77,34 @@ public class Return {
     }
 
     /**
-     * Adds up the prices of the returned products, stores the result as the
-     * refunded amount and returns it.
+     * Calculates the refund of the returned products. If the original sale
+     * had a promotion, each product is refunded in proportion to the discount:
+     * price x (1 - discount / subtotal). Stores the result and returns it.
      *
      * @return the calculated refund amount
      */
     public double calculateRefundAmount() {
         double finalAmount = 0;
         for (Product product : returnedProducts) {
-            finalAmount += product.getPrice();
+            finalAmount += product.getPrice() * getPaidFactor();
         }
         this.reimbursedAmount = finalAmount;
         return finalAmount;
+    }
+
+    /**
+     * Returns the part of the list price that the customer actually paid,
+     * after the discount of the original sale: 1 - discount / subtotal.
+     * Returns 1 when the sale had no discount or its subtotal is zero.
+     *
+     * @return the paid factor, between 0 and 1
+     */
+    private double getPaidFactor() {
+        double subtotal = sale.getSubtotal();
+        if (subtotal <= 0) {
+            return 1;
+        }
+        return 1 - (sale.getDiscountAmount() / subtotal);
     }
 
     /**
