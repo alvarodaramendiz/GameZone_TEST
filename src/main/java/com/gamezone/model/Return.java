@@ -109,7 +109,9 @@ public class Return {
 
     /**
      * Builds a receipt in Spanish with the details of the return: ID, date,
-     * original sale, returned products with their prices, reason and refund.
+     * original sale, and for each returned product its list price, its share
+     * of the sale discount and the refunded amount; then the reason and the
+     * total refund.
      *
      * @return the formatted return receipt
      */
@@ -123,9 +125,12 @@ public class Return {
         int index = 0;
         for (Product product : returnedProducts) {
             index++;
+            double refund = product.getPrice() * getPaidFactor();
             receipt.append("PRODUCTO #").append(index).append("       : ")
-                    .append(product.getTitle())
-                    .append(" - $").append(product.getPrice()).append("\n");
+                    .append(product.getTitle()).append("\n");
+            receipt.append("  PRECIO DE LISTA : $").append(String.format("%.2f", product.getPrice())).append("\n");
+            receipt.append("  DESCUENTO       : $").append(String.format("%.2f", product.getPrice() - refund)).append("\n");
+            receipt.append("  REEMBOLSO       : $").append(String.format("%.2f", refund)).append("\n");
         }
         receipt.append("MOTIVO            : ").append(returnReason).append("\n");
         receipt.append("MONTO REEMBOLSADO : $").append(reimbursedAmount).append("\n");
