@@ -62,7 +62,7 @@ public class MainFrame extends JFrame {
     private final WarrantyService warrantyService = new WarrantyService(warrantyRepository, salePersistence, productService);
         private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, warrantyService, sellerService, customerService);
     private final ReturnPersistence returnPersistence = new ReturnPersistence(saleService, productService, accessoryService);
-    private final ReturnService returnService = new ReturnService(returnPersistence, saleService, productService, accessoryService);
+    private final ReturnService returnService = new ReturnService(returnPersistence, saleService, productService, accessoryService, warrantyService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
