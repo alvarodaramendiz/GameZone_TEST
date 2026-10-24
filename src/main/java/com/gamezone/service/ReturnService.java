@@ -1,5 +1,6 @@
 package com.gamezone.service;
 
+import com.gamezone.model.Accessory;
 import com.gamezone.model.Product;
 import com.gamezone.model.Return;
 import com.gamezone.model.Sale;
@@ -20,6 +21,7 @@ public class ReturnService {
     private final ReturnPersistence repository;
     private final SaleService saleService;
     private final ProductService productService;
+    private final AccessoryService accessoryService;
     private final List<Return> returns;
 
     /**
@@ -27,12 +29,15 @@ public class ReturnService {
      *
      * @param repository     the persistence used to save and load returns
      * @param saleService    the service used to look up sales
-     * @param productService the service used to restore stock
+     * @param productService   the service used to restore the stock of products
+     * @param accessoryService the service used to restore the stock of accessories
      */
-    public ReturnService(ReturnPersistence repository, SaleService saleService, ProductService productService) {
+    public ReturnService(ReturnPersistence repository, SaleService saleService,
+            ProductService productService, AccessoryService accessoryService) {
         this.repository = repository;
         this.saleService = saleService;
         this.productService = productService;
+        this.accessoryService = accessoryService;
         this.returns = new ArrayList<>(repository.loadAll());
     }
 
@@ -76,7 +81,7 @@ public class ReturnService {
         newReturn.calculateRefundAmount();
 
         for (Product product : returnedProducts) {
-            productService.restoreStock(product.getProductId(), 1);
+            restoreStock(product);
         }
 
         returns.add(newReturn);
@@ -146,6 +151,20 @@ public class ReturnService {
             }
         }
         return totalSales - totalReturns;
+    }
+
+    /**
+     * Restores one unit of a returned item, delegating to the service that
+     * owns its inventory.
+     *
+     * @param product the returned product or accessory
+     */
+    private void restoreStock(Product product) {
+        if (product instanceof Accessory) {
+            accessoryService.restoreStock(product.getProductId(), 1);
+        } else {
+            productService.restoreStock(product.getProductId(), 1);
+        }
     }
 
     private Sale findSale(long saleId) {

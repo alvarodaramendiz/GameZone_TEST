@@ -3,6 +3,7 @@ package com.gamezone.persistence;
 import com.gamezone.model.Product;
 import com.gamezone.model.Return;
 import com.gamezone.model.Sale;
+import com.gamezone.service.AccessoryService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
 import utilities.PlainArchives;
@@ -33,6 +34,7 @@ public class ReturnPersistence {
 
     private final SaleService saleService;
     private final ProductService productService;
+    private final AccessoryService accessoryService;
 
     /**
      * Creates a new persistence object that resolves references through
@@ -40,10 +42,13 @@ public class ReturnPersistence {
      *
      * @param saleService    the service used to resolve sale references
      * @param productService the service used to resolve product references
+     * @param accessoryService the service used to resolve accessory references
      */
-    public ReturnPersistence(SaleService saleService, ProductService productService) {
+    public ReturnPersistence(SaleService saleService, ProductService productService,
+            AccessoryService accessoryService) {
         this.saleService = saleService;
         this.productService = productService;
+        this.accessoryService = accessoryService;
     }
 
     /**
@@ -141,6 +146,6 @@ public class ReturnPersistence {
                 return product;
             }
         }
-        return null;
+        return accessoryService.findById(productId);
     }
 }
