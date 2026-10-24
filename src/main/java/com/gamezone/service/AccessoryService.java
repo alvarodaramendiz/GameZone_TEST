@@ -206,6 +206,22 @@ public class AccessoryService {
     }
 
     /**
+     * Adds units back to the stock of an accessory, for example after a
+     * return, and persists the change.
+     *
+     * @param accessoryId identifier of the accessory
+     * @param quantity    units to add, must be at least 1
+     * @throws IllegalArgumentException if the accessory does not exist or the
+     *                                  quantity is not positive
+     */
+    public void restoreStock(String accessoryId, int quantity) {
+        if (quantity < 1) {
+            throw new IllegalArgumentException("La cantidad a restaurar debe ser mayor que cero.");
+        }
+        updateStock(accessoryId, quantity);
+    }
+
+    /**
      * Validates the data shared by every accessory.
      *
      * @param productId identifier of the accessory
