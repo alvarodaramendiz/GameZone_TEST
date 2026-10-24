@@ -1,6 +1,6 @@
 # Layer Diagram — GameZone Unicesar
 
-Architectural representation of the four-layer application structure showing dependencies and data flow between presentation, business logic, data access, and model layers.
+This is the resulting four-layer architecture after the integration of Requiremnt 5 adjustments: products, people, sales, accessories, promotions, warranties and returns now stay in the same diagram, within the same layer functionality.
 
 ```mermaid
 ---
@@ -8,41 +8,54 @@ config:
   layout: fixed
 ---
 flowchart TB
-    subgraph PRESENTACION["Capa de Presentación (ui)"]
-        UI["MainFrame.java<br>ProductPanel.java<br>SalePanel.java<br>PersonPanel.java"]
+    subgraph GUI["Visual Layer (UI)"]
+        UI["MainFrame.java<br>ProductPanel.java<br>PersonPanel.java<br>SalePanel.java<br>AccessoryPanel.java<br>PromotionPanel.java<br>WarrantyPanel.java<br>ReturnPanel.java"]
     end
     
-    subgraph LOGICA["Capa de Lógica de Negocio (service)"]
-        L["SaleService.java<br>SellerService.java<br>CustomerService.java<br>ProductService.java"]
+    subgraph SERVICE["Business Logic Layer (service)"]
+        S["ProductService.java<br>CustomerService.java<br>SellerService.java<br>SaleService.java<br>AccessoryService.java<br>PromotionService.java<br>WarrantyService.java<br>ReturnService.java"]
     end
     
-    subgraph DATOS["Capa de Datos (persistence)"]
-        DM["CustomerPersistence.java<br>SellerPersistence.java<br>ProductPersistence.java<br>SalePersistence.java"]
+    subgraph PERSISTENCE["Data Persistence Layer (persistence)"]
+        DM["ProductPersistence.java<br>CustomerPersistence.java<br>SellerPersistence.java<br>SalePersistence.java<br>AccessoryRepository.java<br>PromotionRepository.java<br>WarrantyRepository.java<br>WarrantyRecord.java<br>ReturnPersistence.java"]
     end
     
-    subgraph MODELO["Capa de Modelo (model)"]
-        C["Sale.java<br>Seller.java<br>Customer.java<br>Product.java<br>Console.java<br>VideoGame.java"]
+    subgraph MODEL["Model Layer (model)"]
+        C["Product.java<br>VideoGame.java<br>Console.java<br>Accessory.java<br>Controller.java<br>Cable.java<br>Memory.java<br>Person.java<br>Customer.java<br>Seller.java<br>Sale.java<br>Promotion.java<br>PercentageDiscount.java<br>CategoryDiscount.java<br>BulkPurchaseDiscount.java<br>Warranty.java<br>BasicWarranty.java<br>ExtendedWarranty.java<br>Return.java"]
     end
     
-    subgraph PRINCIPAL["Capa Principal (com.gamezone)"]
+    subgraph MAIN["Parent Layer (com.gamezone)"]
         n1["Main.java"]
     end
     
     n1 --> UI
-    UI --> L
-    L --> DM
-    UI -.->|utiliza| C
-    L -.->|utiliza| C
-    DM -.->|persiste/gestiona| C
+    UI --> S
+    S --> DM
+    UI -.->|uses| C
+    S -.->|uses| C
+    DM -.->|persists/manages| C
     
-    classDef presentation fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#111827
-    classDef business fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111827
-    classDef data fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111827
+    classDef ui fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#111827
+    classDef service fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#111827
+    classDef persistence fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#111827
     classDef model fill:#f3e8ff,stroke:#9333ea,stroke-width:2px,color:#111827
-    classDef principal fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111827
+    classDef main fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#111827
     
-    class UI presentation
-    class L business
-    class DM data
+    class UI ui
+    class S service
+    class DM persistence
     class C model
-    class n1 principal
+    class n1 main
+```
+
+## Layer responsibilities
+
+| Layer | Package | Responsibility |
+|---|---|---|
+| Presentation | `com.gamezone.ui` | Swing windows and panels; reads user input and shows results and messages in Spanish. |
+| Business logic | `com.gamezone.service` | Business rules: stock validation, best promotion, warranty assignment, return rules and monthly balance. |
+| Data access | `com.gamezone.persistence` | Reads and writes the text/CSV files in `data/`. |
+| Model | `com.gamezone.model` | Domain classes and hierarchies (products, accessories, people, sales, promotions, warranties, returns). |
+
+Dependencies always go in one direction: `ui → service → persistence → model`.
+
