@@ -1,6 +1,5 @@
 package com.gamezone.ui;
 import com.gamezone.persistence.SalePersistence;
-//import com.gamezone.persistence.ReturnPersistence;
 import com.gamezone.persistence.ProductPersistence;
 import com.gamezone.persistence.SellerPersistence;
 import com.gamezone.persistence.CustomerPersistence;
@@ -8,7 +7,6 @@ import com.gamezone.service.CustomerService;
 import com.gamezone.service.ProductService;
 import com.gamezone.service.SaleService;
 import com.gamezone.service.SellerService;
-//import com.gamezone.service.ReturnService;
 
 import com.gamezone.service.AccessoryService;
 import com.gamezone.persistence.AccessoryRepository;
@@ -16,6 +14,8 @@ import com.gamezone.service.PromotionService;
 import com.gamezone.persistence.PromotionRepository;
 import com.gamezone.service.WarrantyService;
 import com.gamezone.persistence.WarrantyRepository;
+import com.gamezone.persistence.ReturnPersistence;
+import com.gamezone.service.ReturnService;
 
 import java.awt.*;
 import javax.swing.*;
@@ -42,6 +42,7 @@ public class MainFrame extends JFrame {
     private JButton btnAccesories;
     private JButton btnPromotions;
     private JButton btnWarranties;
+    private JButton btnReturns;
     private JButton btnExit;
     
     private final AccessoryRepository accessoryRepository = new AccessoryRepository();
@@ -60,6 +61,8 @@ public class MainFrame extends JFrame {
     private final WarrantyRepository warrantyRepository = new WarrantyRepository();
     private final WarrantyService warrantyService = new WarrantyService(warrantyRepository, salePersistence, productService);
         private final SaleService saleService = new SaleService(salePersistence, productService, accessoryService, promotionService, warrantyService, sellerService, customerService);
+    private final ReturnPersistence returnPersistence = new ReturnPersistence(saleService, productService);
+    private final ReturnService returnService = new ReturnService(returnPersistence, saleService, productService);
 
     public MainFrame() {
         setTitle("GameZone Unicesar - Management System");
@@ -88,12 +91,14 @@ public class MainFrame extends JFrame {
         btnAccesories = createMenuButton("Accesorios");
         btnPromotions = createMenuButton("Promociones");
         btnWarranties = createMenuButton("Garantías");
+        btnReturns = createMenuButton("Devoluciones");
 
         sidebar.add(btnHome);
         sidebar.add(btnProducts);
         sidebar.add(btnPeople);
         sidebar.add(btnSales);
         sidebar.add(btnWarranties);
+        sidebar.add(btnReturns);
         sidebar.add(new JLabel());
         sidebar.add(btnExit);
         sidebar.add(btnAccesories);
@@ -110,6 +115,7 @@ public class MainFrame extends JFrame {
         centerPanel.add(new AccessoryPanel(accessoryService), "accesories");
         centerPanel.add(new PromotionPanel(promotionService), "promotions");
         centerPanel.add(new WarrantyPanel(warrantyService, saleService), "warranties");
+        centerPanel.add(new ReturnPanel(returnService, saleService), "returns");
         
 
         btnHome.addActionListener(e -> cardLayout.show(centerPanel, "home"));
@@ -119,6 +125,7 @@ public class MainFrame extends JFrame {
         btnAccesories.addActionListener(e -> cardLayout.show(centerPanel, "accesories"));
         btnPromotions.addActionListener(e -> cardLayout.show(centerPanel, "promotions"));
         btnWarranties.addActionListener(e -> cardLayout.show(centerPanel, "warranties"));
+        btnReturns.addActionListener(e -> cardLayout.show(centerPanel, "returns"));
         btnExit.addActionListener(e -> System.exit(0));
 
         add(sidebar, BorderLayout.WEST);

@@ -132,4 +132,20 @@ public class ProductService {
                 ageRating.equals("E") || ageRating.equals("E10+") ||
                 ageRating.equals("T") || ageRating.equals("M") || ageRating.equals("AO"));
     }
+    
+    public String restoreStock(String productId, int quantity) {
+        Product p = productDAO.searchProduct(productId);
+        
+        if (p != null) {
+            if (quantity>=1) {
+                p.setStock(p.getStock()+quantity);
+                // Conexión con ReturnService para persistir el cambio de stock
+                return "Producto restockeado.";
+            } else {
+                return "Cantidad no válida. Intente de nuevo.";
+            }
+        } else {
+            return "Producto no válido. Intente de nuevo.";
+        }
+    }
 }
