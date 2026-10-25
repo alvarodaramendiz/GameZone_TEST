@@ -1,5 +1,6 @@
 package com.gamezone.persistence;
 
+import com.gamezone.exceptions.PersistenceException;
 import com.gamezone.model.Customer;
 import com.gamezone.model.Product;
 import com.gamezone.model.Sale;
@@ -78,7 +79,7 @@ public class SalePersistence {
                 Files.createDirectories(path.getParent());
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create data directory for " + FILE_PATH, e);
+            throw new PersistenceException("Error al crear la carpeta del archivo " + FILE_PATH, e);
         }
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_PATH))) {
@@ -87,7 +88,7 @@ public class SalePersistence {
                 writer.newLine();
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to save sales to " + FILE_PATH, e);
+            throw new PersistenceException("Error al escribir en el archivo " + FILE_PATH, e);
         }
     }
 
@@ -113,7 +114,7 @@ public class SalePersistence {
                 sales.add(fromCsvLine(line));
             }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to load sales from " + FILE_PATH, e);
+            throw new PersistenceException("Error al leer el archivo " + FILE_PATH, e);
         }
         return sales;
     }

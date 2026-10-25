@@ -6,8 +6,10 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import com.gamezone.exceptions.PersistenceException;
 import utilities.PlainArchives;
 
 /**
@@ -33,7 +35,7 @@ public class SellerPersistence {
             bw.write(seller.toText());
             bw.newLine();
         } catch (IOException e) {
-            System.out.println("Error: Failed to save the seller record.");
+            throw new PersistenceException("Error al escribir en el archivo " + PlainArchives.SELLERS, e);
         }
     }
     
@@ -52,7 +54,7 @@ public class SellerPersistence {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to save the sellers records.");
+            throw new PersistenceException("Error al escribir en el archivo " + PlainArchives.SELLERS, e);
         }
     }
     
@@ -65,6 +67,9 @@ public class SellerPersistence {
     
     public ArrayList<Seller> listSellers(){
         ArrayList<Seller> sellers = new ArrayList<>();
+        if (!new File(PlainArchives.SELLERS).exists()) {
+            return sellers;
+        }
         try (BufferedReader br = new BufferedReader(
                 new FileReader(PlainArchives.SELLERS))) {
             String line;
@@ -79,7 +84,7 @@ public class SellerPersistence {
                 sellers.add(new Seller(employeeCode, shift, infoSeller[2], iD, contactNumber));
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to list the sellers record.");
+            throw new PersistenceException("Error al leer el archivo " + PlainArchives.SELLERS, e);
         }
         return sellers;
     }

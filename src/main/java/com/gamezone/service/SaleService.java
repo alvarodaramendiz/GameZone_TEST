@@ -1,5 +1,7 @@
 package com.gamezone.service;
 
+import com.gamezone.exceptions.BusinessRuleException;
+import com.gamezone.exceptions.InvalidDataException;
 import com.gamezone.model.Customer;
 import com.gamezone.model.Product;
 import com.gamezone.model.Promotion;
@@ -7,6 +9,9 @@ import com.gamezone.model.Sale;
 import com.gamezone.model.Seller;
 import com.gamezone.persistence.SalePersistence;
 import com.gamezone.model.Console;
+import com.gamezone.validation.PersonValidator;
+import com.gamezone.validation.ProductValidator;
+import com.gamezone.validation.SaleValidator;
 import java.util.Set;
 
 import java.time.LocalDate;
@@ -97,9 +102,10 @@ public class SaleService {
      * @param extendedWarrantyConsoleIds ids of the consoles in the sale that get an
      *                                   extended warranty, may be null or empty
      * @return the registered sale
-     * @throws IllegalArgumentException if the map is empty, if the customer,
-     *                                  seller, or an item cannot be found, if a
-     *                                  quantity is not positive, if stock is
+     * @throws com.gamezone.exceptions.ResourceNotFoundException if the customer,
+     *                                  the seller or an item cannot be found
+     * @throws InvalidDataException     if a quantity is not positive
+     * @throws BusinessRuleException    if the sale has no items, if stock is
      *                                  insufficient, or if an extended warranty is
      *                                  requested for something that is not a console
      *                                  of the sale
@@ -107,38 +113,31 @@ public class SaleService {
     public Sale registerSale(long customerId, long employeeCode, Map<String, Integer> productQuantities,
             Set<String> extendedWarrantyConsoleIds) {
 
-        if (productQuantities == null || productQuantities.isEmpty()) {
-            throw new IllegalArgumentException("La venta debe contener al menos un producto.");
-        }
         Set<String> extendedIds = extendedWarrantyConsoleIds == null
             ? Collections.emptySet() : extendedWarrantyConsoleIds;
 
         Customer customer = customerService.searchCustomer(customerId);
-        if (customer == null) {
-            throw new IllegalArgumentException("Cliente no encontrado: " + customerId);
-        }
+        PersonValidator.validatePersonExists(customer, String.valueOf(customerId));
         Seller seller = sellerService.searchSeller(employeeCode);
-        if (seller == null) {
-            throw new IllegalArgumentException("Vendedor no encontrado: " + employeeCode);
-        }
+        PersonValidator.validatePersonExists(seller, String.valueOf(employeeCode));
 
-        for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
-            String productId = entry.getKey();
-            int amount = entry.getValue();
+        List<Product> products = new ArrayList<>();
+        if (productQuantities != null) {
+            for (Map.Entry<String, Integer> entry : productQuantities.entrySet()) {
+                String productId = entry.getKey();
+                int amount = entry.getValue();
 
-            Product product = findProduct(productId);
-            if (product == null) {
-                throw new IllegalArgumentException("Producto no encontrado: " + productId);
-            }
-            if (amount <= 0) {
-                throw new IllegalArgumentException(
-                    "La cantidad debe ser mayor que cero para el producto: " + product.getTitle());
-            }
-            if (!hasEnoughStock(productId, amount)) {
-                throw new IllegalArgumentException(
-                    "Stock insuficiente para el producto: " + product.getTitle());
+                Product product = findProduct(productId);
+                ProductValidator.validateProductExists(product, productId);
+                if (amount <= 0) {
+                    throw new InvalidDataException("cantidad",
+                        "debe ser mayor que cero para el producto " + product.getTitle());
+                }
+                ProductValidator.validateStockAvailability(product, amount);
+                products.add(product);
             }
         }
+        SaleValidator.validateSaleData(customer, seller, products);
         validateExtendedWarrantyRequests(productQuantities, extendedIds);
 
         long uId = System.currentTimeMillis();
@@ -220,13 +219,13 @@ public class SaleService {
      *
      * @param productQuantities map of item id to quantity of the sale
      * @param extendedIds ids requested for an extended warranty
-     * @throws IllegalArgumentException if an id is not a console of the sale
+     * @throws BusinessRuleException if an id is not a console of the sale
      */
     private void validateExtendedWarrantyRequests(Map<String, Integer> productQuantities,
             Set<String> extendedIds) {
         for (String id : extendedIds) {
             if (!productQuantities.containsKey(id) || !(findProduct(id) instanceof Console)) {
-                throw new IllegalArgumentException(
+                throw new BusinessRuleException(
                     "Solo las consolas de la venta pueden tener garantía extendida: " + id);
             }
         }
@@ -323,20 +322,6 @@ public class SaleService {
         return null;
     }
     
-
-    /**
-     * Checks the stock of an item, delegating to the service that owns it.
-     *
-     * @param productId the ID of the product or accessory
-     * @param amount the requested quantity
-     * @return true if there are enough units
-     */
-    private boolean hasEnoughStock(String productId, int amount) {
-        if (findRegularProduct(productId) != null) {
-            return productService.hasEnoughStock(productId, amount);
-        }
-        return accessoryService.hasEnoughStock(productId, amount);
-    }
 
     /**
      * Updates the stock of an item, delegating to the service that owns it.

@@ -1,8 +1,11 @@
 package com.gamezone.service;
 
+import com.gamezone.exceptions.BusinessRuleException;
+import com.gamezone.exceptions.InvalidDataException;
 import com.gamezone.model.Seller;
 import com.gamezone.model.Shift;
 import com.gamezone.persistence.SellerPersistence;
+import com.gamezone.validation.PersonValidator;
 import java.util.ArrayList;
 
 /**
@@ -26,7 +29,7 @@ public class SellerService {
      * @param name the name of the seller.
      * @param iD the identification number of the seller.
      * @param contactNumber the contact number of the seller.
-     * @throws IllegalArgumentException if any of the provided information
+     * @throws InvalidDataException if any of the provided information
      * is invalid.
      */
     
@@ -34,31 +37,27 @@ public class SellerService {
             long iD, long contactNumber) {
 
         if (employeeCode <= 0) {
-            throw new IllegalArgumentException(
-                    "Employee code must be greater than zero");
+            throw new InvalidDataException("código de empleado", "debe ser mayor que cero");
         }
 
         if (shift == null) {
-            throw new IllegalArgumentException("Shift cannot be null");
+            throw new InvalidDataException("turno", "es obligatorio");
         }
 
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Name cannot be empty");
+            throw new InvalidDataException("nombre", "no puede estar vacío");
         }
 
         if (name.matches(".*\\d.*")) {
-            throw new IllegalArgumentException(
-                    "Name cannot contain numbers");
+            throw new InvalidDataException("nombre", "no puede contener números");
         }
 
         if (iD <= 0) {
-            throw new IllegalArgumentException(
-                    "ID must be greater than zero");
+            throw new InvalidDataException("identificador", "debe ser mayor que cero");
         }
 
         if (contactNumber <= 0) {
-            throw new IllegalArgumentException(
-                    "Contact number must be greater than zero");
+            throw new InvalidDataException("teléfono", "debe ser mayor que cero");
         }
     }
 
@@ -72,8 +71,9 @@ public class SellerService {
      * @param name the name of the seller.
      * @param iD the identification number of the seller.
      * @param contactNumber the contact number of the seller.
-     * @throws IllegalArgumentException if any of the provided information
-     * is invalid or if a seller with the given employee code already exists.
+     * @throws InvalidDataException if any of the provided information is invalid.
+     * @throws BusinessRuleException if a seller with the given employee code
+     * already exists.
      */
     
     public void registerSeller(long employeeCode, Shift shift, String name,
@@ -82,8 +82,8 @@ public class SellerService {
         validateSeller(employeeCode, shift, name, iD, contactNumber);
 
         if (searchSeller(employeeCode) != null) {
-            throw new IllegalArgumentException(
-                    "A seller with this employee code already exists");
+            throw new BusinessRuleException(
+                    "Ya existe un vendedor con el código de empleado " + employeeCode);
         }
 
         Seller seller = new Seller(employeeCode, shift, name, iD, contactNumber);
@@ -98,18 +98,16 @@ public class SellerService {
      * @param name the new name of the seller.
      * @param iD the new identification number of the seller.
      * @param contactNumber the new contact number of the seller.
-     * @throws IllegalArgumentException if the seller does not exist or if
-     * the provided information is invalid.
+     * @throws com.gamezone.exceptions.ResourceNotFoundException if the seller
+     * does not exist.
+     * @throws InvalidDataException if the provided information is invalid.
      */
     
     public void updateSeller(long employeeCode, Shift shift, String name,
             long iD, long contactNumber) {
 
         Seller seller = searchSeller(employeeCode);
-
-        if (seller == null) {
-            throw new IllegalArgumentException("Seller not found");
-        }
+        PersonValidator.validatePersonExists(seller, String.valueOf(employeeCode));
 
         validateSeller(employeeCode, shift, name, iD, contactNumber);
 
@@ -125,17 +123,14 @@ public class SellerService {
      * Deletes an existing seller from the persistence layer.
      *
      * @param employeeCode the employee code of the seller to delete.
-     * @throws IllegalArgumentException if no seller with the given employee
-     * code exists.
+     * @throws com.gamezone.exceptions.ResourceNotFoundException if no seller
+     * with the given employee code exists.
      */
     
     public void deleteSeller(long employeeCode) {
 
         Seller seller = searchSeller(employeeCode);
-
-        if (seller == null) {
-            throw new IllegalArgumentException("Seller not found");
-        }
+        PersonValidator.validatePersonExists(seller, String.valueOf(employeeCode));
 
         sellerDAO.deleteSeller(employeeCode);
     }

@@ -1,7 +1,9 @@
 package com.gamezone.service;
 
+import com.gamezone.exceptions.InvalidDataException;
 import com.gamezone.model.Customer;
 import com.gamezone.persistence.CustomerPersistence;
+import com.gamezone.validation.PersonValidator;
 import java.util.ArrayList;
 
 /**
@@ -24,36 +26,23 @@ public class CustomerService {
      * @param name the name of the customer. 
      * @param iD the identification number of the customer. 
      * @param contactNumber the contact number of the customer. 
-     * @throws IllegalArgumentException if any of the provided information is 
-     * invalid or if a customer with the given ID already exists.
+     * @throws InvalidDataException if any of the provided information is invalid.
      */
     
     public void validateCustomer(String eMail, String name, long iD, long contactNumber) {
-
-        if (eMail == null || eMail.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email cannot be empty");
-        }
-        
-        if (!eMail.contains("@") || !eMail.contains(".")) {
-            throw new IllegalArgumentException("Invalid email format");
-        }
-
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Name cannot be empty");
-        }
+        PersonValidator.validatePersonData(String.valueOf(iD), name, eMail, String.valueOf(contactNumber));
 
         if (name.matches(".*\\d.*")) {
-            throw new IllegalArgumentException("Name cannot contain numbers");
+            throw new InvalidDataException("nombre", "no puede contener números");
         }
 
         if (iD <= 0) {
-            throw new IllegalArgumentException("ID cannot be negative");
+            throw new InvalidDataException("identificador", "debe ser mayor que cero");
         }
 
         if (contactNumber <= 0) {
-            throw new IllegalArgumentException("Contact number cannot be negative");
+            throw new InvalidDataException("teléfono", "debe ser mayor que cero");
         }
-
     }
 
     /**
@@ -64,15 +53,14 @@ public class CustomerService {
      * @param name the name of the customer. 
      * @param iD the identification number of the customer. 
      * @param contactNumber the contact number of the customer. 
-     * @throws IllegalArgumentException if any of the provided information is 
-     * invalid or if a customer with the given ID already exists.
+     * @throws InvalidDataException if any of the provided information is invalid.
+     * @throws com.gamezone.exceptions.BusinessRuleException if a customer with
+     * the given ID already exists.
      */
     
     public void registerCustomer(String eMail, String name, long iD, long contactNumber) {
         validateCustomer(eMail, name, iD, contactNumber);
-        if (searchCustomer(iD) != null) {
-            throw new IllegalArgumentException("A customer with this ID already exists");
-        }
+        PersonValidator.validateUniquePerson(listCustomers(), String.valueOf(iD));
         Customer customer = new Customer(eMail, name, iD, contactNumber);
         customerDAO.saveCustomer(customer);
     }
@@ -83,15 +71,14 @@ public class CustomerService {
      * @param eMail the new email address of the customer. 
      * @param name the new name of the customer. 
      * @param contactNumber the new contact number of the customer.
-     * @throws IllegalArgumentException if the customer does not exist or if *
-     * the provided information is invalid.
+     * @throws com.gamezone.exceptions.ResourceNotFoundException if the customer
+     * does not exist.
+     * @throws InvalidDataException if the provided information is invalid.
      */
     
     public void updateCustomer(long iD, String eMail, String name, long contactNumber) {
         Customer customer = searchCustomer(iD);
-        if (customer == null) {
-            throw new IllegalArgumentException("Customer not found");
-        }
+        PersonValidator.validatePersonExists(customer, String.valueOf(iD));
         validateCustomer(eMail, name, iD, contactNumber);
         customer.seteMail(eMail);
         customer.setName(name);
@@ -102,14 +89,13 @@ public class CustomerService {
     /**
      * Deletes an existing customer from the persistence layer.
      * @param iD the identification number of the customer to delete. 
-     * @throws IllegalArgumentException if no customer with the given ID exists.
+     * @throws com.gamezone.exceptions.ResourceNotFoundException if no customer
+     * with the given ID exists.
      */
     
     public void deleteCustomer(long iD) {
         Customer customer = searchCustomer(iD);
-        if (customer == null) {
-            throw new IllegalArgumentException("Customer not found");
-        }
+        PersonValidator.validatePersonExists(customer, String.valueOf(iD));
         customerDAO.deleteCustomer(iD);
     }
 
