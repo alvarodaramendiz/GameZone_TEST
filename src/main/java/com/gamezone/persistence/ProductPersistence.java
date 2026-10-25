@@ -3,11 +3,13 @@ package com.gamezone.persistence;
 import com.gamezone.model.Product;
 import com.gamezone.model.VideoGame;
 import com.gamezone.model.Console;
+import com.gamezone.exceptions.PersistenceException;
 import utilities.PlainArchives;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +40,7 @@ public class ProductPersistence {
             bw.write(product.toText());
             bw.newLine();
         } catch (IOException e) {
-            System.out.println("Error: Failed to save the product record.");
+            throw new PersistenceException("Error al escribir en el archivo " + file, e);
         }
     }
 
@@ -101,7 +103,8 @@ public class ProductPersistence {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to update the product record.");
+            throw new PersistenceException("Error al escribir en los archivos "
+                    + PlainArchives.VIDEOGAMES + " y " + PlainArchives.CONSOLES, e);
         }
     }
 
@@ -112,6 +115,9 @@ public class ProductPersistence {
      */
     private List<Product> loadVideoGames() {
         List<Product> list = new ArrayList<>();
+        if (!new File(PlainArchives.VIDEOGAMES).exists()) {
+            return list;
+        }
         try (BufferedReader br = new BufferedReader(new FileReader(PlainArchives.VIDEOGAMES))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -127,7 +133,7 @@ public class ProductPersistence {
                 list.add(new VideoGame(platform, genre, ageRating, productId, title, price, stock));
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to list video games.");
+            throw new PersistenceException("Error al leer el archivo " + PlainArchives.VIDEOGAMES, e);
         }
         return list;
     }
@@ -139,6 +145,9 @@ public class ProductPersistence {
      */
     private List<Product> loadConsoles() {
         List<Product> list = new ArrayList<>();
+        if (!new File(PlainArchives.CONSOLES).exists()) {
+            return list;
+        }
         try (BufferedReader br = new BufferedReader(new FileReader(PlainArchives.CONSOLES))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -154,7 +163,7 @@ public class ProductPersistence {
                 list.add(new Console(brand, model, generation, productId, title, price, stock));
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to list consoles.");
+            throw new PersistenceException("Error al leer el archivo " + PlainArchives.CONSOLES, e);
         }
         return list;
     }
