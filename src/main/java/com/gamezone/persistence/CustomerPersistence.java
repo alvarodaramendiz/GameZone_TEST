@@ -4,9 +4,11 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import com.gamezone.model.Customer;
+import com.gamezone.exceptions.PersistenceException;
 import utilities.PlainArchives;
 
 /**
@@ -31,7 +33,7 @@ public class CustomerPersistence {
             bw.write(customer.toText());
             bw.newLine();
         } catch (IOException e) {
-            System.out.println("Error: Failed to save the customer record.");
+            throw new PersistenceException("Error al escribir en el archivo " + PlainArchives.CUSTOMERS, e);
         }
     }
 
@@ -49,7 +51,7 @@ public class CustomerPersistence {
                 bw.newLine();
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to save the customers records.");
+            throw new PersistenceException("Error al escribir en el archivo " + PlainArchives.CUSTOMERS, e);
         }
     }
 
@@ -61,6 +63,9 @@ public class CustomerPersistence {
      */
     public ArrayList<Customer> listCustomers() {
         ArrayList<Customer> customers = new ArrayList<>();
+        if (!new File(PlainArchives.CUSTOMERS).exists()) {
+            return customers;
+        }
         try (BufferedReader br = new BufferedReader(
                 new FileReader(PlainArchives.CUSTOMERS))) {
             String line;
@@ -75,7 +80,7 @@ public class CustomerPersistence {
                 customers.add(new Customer(infoCustomer[2], infoCustomer[1], iD, contactNumber));
             }
         } catch (IOException e) {
-            System.out.println("Error: Failed to list the customers record.");
+            throw new PersistenceException("Error al leer el archivo " + PlainArchives.CUSTOMERS, e);
         }
         return customers;
     }
