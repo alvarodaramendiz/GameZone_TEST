@@ -1,5 +1,9 @@
 package com.gamezone.ui;
 
+import com.gamezone.exceptions.BusinessRuleException;
+import com.gamezone.exceptions.InvalidDataException;
+import com.gamezone.exceptions.PersistenceException;
+import com.gamezone.exceptions.ResourceNotFoundException;
 import com.gamezone.model.Console;
 import com.gamezone.model.Product;
 import com.gamezone.model.VideoGame;
@@ -144,16 +148,28 @@ public class ProductPanel extends JPanel {
             refreshTable();
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Precio y stock deben ser números válidos.");
+        } catch (ResourceNotFoundException e) {
+            JOptionPane.showMessageDialog(this, "No se encontró el recurso solicitado: " + e.getMessage());
+        } catch (BusinessRuleException e) {
+            JOptionPane.showMessageDialog(this, "No se puede completar la operación: " + e.getMessage());
+        } catch (InvalidDataException e) {
+            JOptionPane.showMessageDialog(this, "Los datos ingresados no son válidos: " + e.getMessage());
+        } catch (PersistenceException e) {
+            JOptionPane.showMessageDialog(this, "Ocurrió un problema al acceder a los datos del sistema. Contacte al administrador.");
         }
     }
 
     private void refreshTable() {
         tableModel.setRowCount(0);
-        List<Product> products = productService.listProducts();
-        for (Product p : products) {
-            tableModel.addRow(new Object[]{
-                    p.getProductId(), p.getTitle(), p.getPrice(), p.getStock(), p.getDescription()
-            });
+        try {
+            List<Product> products = productService.listProducts();
+            for (Product p : products) {
+                tableModel.addRow(new Object[]{
+                        p.getProductId(), p.getTitle(), p.getPrice(), p.getStock(), p.getDescription()
+                });
+            }
+        } catch (PersistenceException e) {
+            JOptionPane.showMessageDialog(this, "Ocurrió un problema al acceder a los datos del sistema. Contacte al administrador.");
         }
     }
 }
