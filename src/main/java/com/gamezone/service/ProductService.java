@@ -1,9 +1,12 @@
 package com.gamezone.service;
 
+import com.gamezone.exceptions.BusinessRuleException;
+import com.gamezone.exceptions.GameZoneException;
 import com.gamezone.model.Product;
 import com.gamezone.model.VideoGame;
 import com.gamezone.model.Console;
 import com.gamezone.persistence.ProductPersistence;
+import com.gamezone.validation.ProductValidator;
 import java.util.List;
 
 /**
@@ -30,9 +33,10 @@ public class ProductService {
      * @return a message indicating success or the validation error
      */
     public String registerVideoGame(VideoGame videoGame) {
-        String validation = validateProduct(videoGame);
-        if (validation != null) {
-            return validation;
+        try {
+            validateProduct(videoGame);
+        } catch (GameZoneException e) {
+            return "Error: " + e.getMessage();
         }
         if (!isValidAgeRating(videoGame.getAgeRating())) {
             return "Error: invalid age rating. Must be E, E10+, T, M, or AO.";
@@ -48,9 +52,10 @@ public class ProductService {
      * @return a message indicating success or the validation error
      */
     public String registerConsole(Console console) {
-        String validation = validateProduct(console);
-        if (validation != null) {
-            return validation;
+        try {
+            validateProduct(console);
+        } catch (GameZoneException e) {
+            return "Error: " + e.getMessage();
         }
         productDAO.saveProduct(console);
         return "Console registered successfully.";
@@ -83,17 +88,15 @@ public class ProductService {
      *
      * @param productId the ID of the product to update
      * @param quantity the number of units to add (positive) or remove (negative)
-     * @throws IllegalArgumentException if the product does not exist or the
-     *         resulting stock would be negative
+     * @throws com.gamezone.exceptions.ResourceNotFoundException if the product does not exist
+     * @throws BusinessRuleException if the resulting stock would be negative
      */
     public void updateStock(String productId, int quantity) {
         Product product = productDAO.searchProduct(productId);
-        if (product == null) {
-            throw new IllegalArgumentException("Producto no encontrado: " + productId);
-        }
+        ProductValidator.validateProductExists(product, productId);
         int newStock = product.getStock() + quantity;
         if (newStock < 0) {
-            throw new IllegalArgumentException("Stock insuficiente para el producto: " + product.getTitle());
+            throw new BusinessRuleException("Stock insuficiente para el producto: " + product.getTitle());
         }
         product.setStock(newStock);
         productDAO.updateProduct(product);
@@ -103,22 +106,15 @@ public class ProductService {
      * Validates the common attributes shared by all products.
      *
      * @param product the product to validate
-     * @return an error message if validation fails, or null if it's valid :)
+     * @throws com.gamezone.exceptions.InvalidDataException if a value is not valid
+     * @throws BusinessRuleException if a product with the same ID already exists
      */
-    private String validateProduct(Product product) {
+    private void validateProduct(Product product) {
+        ProductValidator.validateProductData(product.getProductId(), product.getTitle(),
+                product.getPrice(), product.getStock());
         if (productDAO.existsProduct(product.getProductId())) {
-            return "Error: a product with this ID already exists.";
+            throw new BusinessRuleException("Ya existe un producto con el identificador " + product.getProductId());
         }
-        if (product.getTitle() == null || product.getTitle().trim().isEmpty()) {
-            return "Error: title cannot be empty.";
-        }
-        if (product.getPrice() <= 0) {
-            return "Error: price must be greater than zero.";
-        }
-        if (product.getStock() < 0) {
-            return "Error: stock cannot be negative.";
-        }
-        return null;
     }
 
     /**
